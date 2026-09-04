@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import Script from "next/script";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -26,12 +25,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <head>
-        <Script
-          src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=eb3a51361a63acc8e8877f7307febc8a&autoload=false&libraries=services,clusterer"
-          strategy="beforeInteractive"
-        />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
