@@ -20,7 +20,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('전국');
-  const [selectedPeriod, setSelectedPeriod] = useState('ONGOING'); // 기본값: 진행 중인 축제
+  const [selectedPeriod, setSelectedPeriod] = useState('ALL'); // 기본값: 올해 포함된 전체 축제 노출
   const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null);
 
   // 모바일 전용 상태: 지도 모드 토글 및 바텀시트 확장 상태 (1: 접힘, 2: 반확장, 3: 전체확장)
