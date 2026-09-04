@@ -40,11 +40,8 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setFestivals(data.data);
-        if (data.data.length > 0) {
-          setSelectedFestival(data.data[0]);
-        } else {
-          setSelectedFestival(null);
-        }
+        // 초기 로딩 시 첫 번째 축제 자동 선택 배제 (지도의 한반도 전체 뷰 유지)
+        setSelectedFestival(null);
       }
     } catch (error) {
       console.error('Failed to load festivals', error);
