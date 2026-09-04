@@ -1,7 +1,14 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Festival } from '@/lib/data';
+import Link from 'next/link';
+
+declare global {
+  interface Window {
+    kakao: any;
+  }
+}
 
 interface InteractiveMapProps {
   festivals: Festival[];
@@ -14,118 +21,168 @@ export default function InteractiveMap({
   selectedFestival,
   onSelectFestival
 }: InteractiveMapProps) {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const kakaoMapInstance = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const overlayRef = useRef<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // 대한민국 지도 좌표 변환 (SVG 뷰박스 0 0 500 700 기준)
-  // 경도: 125.0 ~ 130.0 -> X: 20 ~ 480
-  // 위도: 33.0 ~ 38.5  -> Y: 680 ~ 30 (위도가 클수록 화면 상단)
-  const projectCoordinates = (lng: number, lat: number) => {
-    const minLng = 125.5;
-    const maxLng = 129.8;
-    const minLat = 33.2;
-    const maxLat = 38.5;
+  // 카카오맵 초기화
+  useEffect(() => {
+    const initMap = () => {
+      if (!window.kakao || !window.kakao.maps || !mapRef.current) return;
 
-    const x = ((lng - minLng) / (maxLng - minLng)) * 420 + 40;
-    const y = (1 - (lat - minLat) / (maxLat - minLat)) * 580 + 50;
-    return { x, y };
-  };
+      window.kakao.maps.load(() => {
+        const container = mapRef.current;
+        // 대한민국 중심 좌표 (대전/충청 인근 기준)
+        const options = {
+          center: new window.kakao.maps.LatLng(36.35, 127.75),
+          level: 13, // 전국 단위 줌 레벨
+        };
+
+        const map = new window.kakao.maps.Map(container, options);
+        kakaoMapInstance.current = map;
+
+        // 지도 줌 컨트롤 추가
+        const zoomControl = new window.kakao.maps.ZoomControl();
+        map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+
+        setIsLoaded(true);
+      });
+    };
+
+    if (window.kakao && window.kakao.maps) {
+      initMap();
+    } else {
+      const interval = setInterval(() => {
+        if (window.kakao && window.kakao.maps) {
+          clearInterval(interval);
+          initMap();
+        }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  // 축제 데이터 변경 시 마커 렌더링
+  useEffect(() => {
+    if (!isLoaded || !kakaoMapInstance.current || !window.kakao) return;
+
+    const map = kakaoMapInstance.current;
+
+    // 기존 마커 및 오버레이 제거
+    markersRef.current.forEach(m => m.setMap(null));
+    markersRef.current = [];
+    if (overlayRef.current) {
+      overlayRef.current.setMap(null);
+    }
+
+    // 마커 생성
+    const newMarkers = festivals.map(fest => {
+      const pos = new window.kakao.maps.LatLng(fest.mapy, fest.mapx);
+      const isSelected = selectedFestival?.id === fest.id;
+
+      // 마커 생성
+      const marker = new window.kakao.maps.Marker({
+        position: pos,
+        map: map,
+        title: fest.title
+      });
+
+      // 마커 클릭 이벤트
+      window.kakao.maps.event.addListener(marker, 'click', () => {
+        onSelectFestival(fest);
+      });
+
+      return marker;
+    });
+
+    markersRef.current = newMarkers;
+
+    // 축제 필터링 시 지도 영역 재조정 (선택된 축제가 없을 때)
+    if (festivals.length > 0 && !selectedFestival) {
+      const bounds = new window.kakao.maps.LatLngBounds();
+      festivals.forEach(fest => {
+        if (fest.mapy && fest.mapx) {
+          bounds.extend(new window.kakao.maps.LatLngBounds(fest.mapy, fest.mapx));
+        }
+      });
+    }
+  }, [festivals, isLoaded, onSelectFestival, selectedFestival]);
+
+  // 선택된 축제 변경 시 지도 중심 이동 및 커스텀 오버레이(말풍선) 노출
+  useEffect(() => {
+    if (!isLoaded || !kakaoMapInstance.current || !window.kakao) return;
+
+    const map = kakaoMapInstance.current;
+
+    if (overlayRef.current) {
+      overlayRef.current.setMap(null);
+      overlayRef.current = null;
+    }
+
+    if (selectedFestival && selectedFestival.mapy && selectedFestival.mapx) {
+      const moveLatLon = new window.kakao.maps.LatLng(
+        selectedFestival.mapy,
+        selectedFestival.mapx
+      );
+
+      // 지도 부드럽게 중심 이동 및 줌 확대
+      map.setLevel(7, { animate: true });
+      map.panTo(moveLatLon);
+
+      // 커스텀 오버레이(상세 팝업) 콘텐츠 생성
+      const content = document.createElement('div');
+      content.className = 'bg-white rounded-xl shadow-2xl border border-gray-200 p-3 max-w-[240px] text-left transform -translate-y-12';
+      content.innerHTML = `
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="bg-[#0A2540] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">한경픽</span>
+          <span class="text-xs font-bold text-gray-900 truncate">${selectedFestival.title}</span>
+        </div>
+        <p class="text-[11px] text-gray-500 mb-1 truncate">${selectedFestival.addr1 || ''}</p>
+        <p class="text-[10px] text-blue-600 font-medium mb-2">${selectedFestival.start_date} ~ ${selectedFestival.end_date}</p>
+        <a href="/festivals/${selectedFestival.id}" class="block text-center text-xs bg-[#2292d8] hover:bg-blue-600 text-white font-medium py-1 rounded transition-colors">
+          상세보기 →
+        </a>
+      `;
+
+      const customOverlay = new window.kakao.maps.CustomOverlay({
+        position: moveLatLon,
+        content: content,
+        yAnchor: 1.0,
+      });
+
+      customOverlay.setMap(map);
+      overlayRef.current = customOverlay;
+    }
+  }, [selectedFestival, isLoaded]);
 
   return (
-    <div className="w-full h-full min-h-[450px] relative bg-slate-50 rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
+    <div className="w-full h-full min-h-[450px] relative rounded-2xl border border-gray-200 overflow-hidden flex flex-col shadow-sm">
       {/* 지도 상단 컨트롤 바 */}
-      <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-xs flex items-center gap-2">
-        <span className="w-2.5 h-2.5 rounded-full bg-[#0A2540] animate-pulse"></span>
-        <span className="font-semibold text-gray-800">전국 축제 지도</span>
+      <div className="absolute top-3 left-3 z-20 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-xs flex items-center gap-2 pointer-events-none">
+        <span className="w-2.5 h-2.5 rounded-full bg-[#E11D48] animate-pulse"></span>
+        <span className="font-semibold text-gray-800">카카오맵 전국 실시간 지도</span>
         <span className="text-gray-400">|</span>
-        <span className="text-gray-500 font-medium">{festivals.length}개 축제 개최</span>
+        <span className="text-gray-500 font-medium">{festivals.length}개 축제 표시</span>
       </div>
 
-      {/* SVG 기반 인터랙티브 대한민국 지도 및 마커 */}
-      <div className="w-full h-full flex items-center justify-center p-4">
-        <svg
-          viewBox="0 0 500 680"
-          className="w-full h-full max-h-[650px] drop-shadow-md select-none"
-        >
-          {/* 한반도 배경 형상 윤곽선 */}
-          <path
-            d="M 170 60 Q 250 50 320 80 Q 380 130 360 220 Q 380 290 350 380 Q 370 480 320 540 Q 240 560 170 520 Q 120 460 140 380 Q 110 260 150 160 Z"
-            fill="#e2e8f0"
-            stroke="#cbd5e1"
-            strokeWidth="3"
-            strokeLinejoin="round"
-          />
-          {/* 제주도 */}
-          <ellipse cx="140" cy="625" rx="35" ry="18" fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="2" />
-          {/* 울릉도/독도 */}
-          <circle cx="430" cy="220" r="8" fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="1.5" />
+      {/* 카카오맵이 마운트될 DOM 컨테이너 */}
+      <div ref={mapRef} className="w-full h-full min-h-[500px] z-0" />
 
-          {/* 지역 구분 텍스트 라벨 */}
-          <text x="180" y="160" className="text-[12px] fill-slate-400 font-bold">수도권</text>
-          <text x="300" y="150" className="text-[12px] fill-slate-400 font-bold">강원</text>
-          <text x="210" y="270" className="text-[12px] fill-slate-400 font-bold">충청</text>
-          <text x="320" y="360" className="text-[12px] fill-slate-400 font-bold">경상</text>
-          <text x="190" y="440" className="text-[12px] fill-slate-400 font-bold">전라</text>
-          <text x="125" y="628" className="text-[10px] fill-slate-400 font-bold">제주</text>
-
-          {/* 축제 마커 렌더링 */}
-          {festivals.map((fest) => {
-            const { x, y } = projectCoordinates(fest.mapx, fest.mapy);
-            const isSelected = selectedFestival?.id === fest.id;
-
-            return (
-              <g
-                key={fest.id}
-                transform={`translate(${x}, ${y})`}
-                className="cursor-pointer transition-all duration-200"
-                onClick={() => onSelectFestival(fest)}
-              >
-                {/* 펄스 파동 효과 (선택 시) */}
-                {isSelected && (
-                  <circle r="22" fill="#0A2540" opacity="0.2" className="animate-ping" />
-                )}
-
-                {/* 마커 핀 본체 */}
-                <path
-                  d="M 0 0 C -8 -12 -12 -18 -12 -25 A 12 12 0 1 1 12 -25 C 12 -18 8 -12 0 0 Z"
-                  fill={isSelected ? '#0A2540' : '#2563eb'}
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                  className="transition-transform duration-200 hover:scale-125"
-                />
-                <circle cx="0" cy="-25" r="4.5" fill="#ffffff" />
-
-                {/* 마커 호버/선택 텍스트 말풍선 */}
-                <g transform="translate(0, -42)" className={isSelected ? 'block' : 'hover:block'}>
-                  <rect
-                    x="-60"
-                    y="-12"
-                    width="120"
-                    height="20"
-                    rx="4"
-                    fill="#0A2540"
-                    className="shadow-lg"
-                  />
-                  <text
-                    x="0"
-                    y="2"
-                    textAnchor="middle"
-                    fill="#ffffff"
-                    fontSize="9.5"
-                    fontWeight="bold"
-                    className="select-none"
-                  >
-                    {fest.title.length > 9 ? fest.title.slice(0, 8) + '..' : fest.title}
-                  </text>
-                </g>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
+      {/* 로딩 인디케이터 */}
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-slate-50 flex items-center justify-center z-10 text-xs text-gray-500">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-6 h-6 border-2 border-[#0A2540] border-t-transparent rounded-full animate-spin"></div>
+            <span>카카오 지도 로딩 중...</span>
+          </div>
+        </div>
+      )}
 
       {/* 지도 하단 안내 바 */}
-      <div className="bg-white/90 border-t border-gray-100 p-2.5 text-center text-xs text-gray-500">
-        💡 마커를 클릭하면 해당 축제 카드가 강조되고 상세 정보로 연결됩니다.
+      <div className="bg-white/95 border-t border-gray-100 p-2 text-center text-xs text-gray-500 z-10">
+        💡 마커를 클릭하면 축제 위치로 확대되고 상세 팝업이 노출됩니다.
       </div>
     </div>
   );
