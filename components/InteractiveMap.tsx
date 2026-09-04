@@ -84,8 +84,8 @@ export default function InteractiveMap({
       try {
         const container = mapRef.current;
         const options = {
-          center: new window.kakao.maps.LatLng(36.35, 127.75), // 대한민국 중심
-          level: 13,
+          center: new window.kakao.maps.LatLng(35.9, 127.8), // 한반도 정중앙 (남한 전역 및 제주도 포괄)
+          level: 13, // 서울부터 부산, 제주도까지 한눈에 보이는 축척
         };
 
         const map = new window.kakao.maps.Map(container, options);
