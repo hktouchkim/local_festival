@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Menu, Search, Shield } from 'lucide-react';
 
 export default function Header() {
@@ -21,36 +22,17 @@ export default function Header() {
           </span>
         </div>
 
-        {/* 중앙: 한경 Tra[♥]el 공식 시그니처 브랜드 로고 */}
+        {/* 중앙: 한경 트래블 공식 공식 SVG 원본 로고 (228x35) */}
         <div className="flex items-center justify-center">
-          <Link href="/" className="flex items-center">
-            {/* 한경 */}
-            <span className="text-[26px] font-black tracking-tight text-[#0A2540] mr-1.5 font-sans">
-              한경
-            </span>
-            {/* Tra */}
-            <span className="text-[26px] font-extrabold tracking-tight text-[#2292d8] font-sans">
-              Tra
-            </span>
-            {/* v 대체 심볼: 붉은색 위치핀 & 하트 */}
-            <span className="inline-flex items-center justify-center mx-0.5 relative -top-[1px]">
-              <svg width="19" height="23" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* 핀 외곽 */}
-                <path
-                  d="M10 0C4.477 0 0 4.477 0 10C0 16.5 10 24 10 24S20 16.5 20 10C20 4.477 15.523 0 10 0Z"
-                  fill="#E11D48"
-                />
-                {/* 핀 내부 흰색 하트 */}
-                <path
-                  d="M10 13.5L9.13 12.7C6.06 9.92 4 8.05 4 5.75C4 3.88 5.48 2.4 7.35 2.4C8.41 2.4 9.42 2.89 10 3.67C10.58 2.89 11.59 2.4 12.65 2.4C14.52 2.4 16 3.88 16 5.75C16 8.05 13.94 9.92 10.87 12.71L10 13.5Z"
-                  fill="white"
-                />
-              </svg>
-            </span>
-            {/* el */}
-            <span className="text-[26px] font-extrabold tracking-tight text-[#2292d8] font-sans">
-              el
-            </span>
+          <Link href="/" className="inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://hkstatic.hankyung.com/resource/common/img/logo/logo-travel.svg"
+              alt="한경 트래블"
+              width={228}
+              height={35}
+              className="w-[228px] h-[35px] object-contain"
+            />
           </Link>
         </div>
 
@@ -76,9 +58,9 @@ export default function Header() {
         </div>
       </div>
 
-      {/* 2. GNB 탭 메뉴 바 (A안 적용: 화이트 배경, '지역축제' 활성화) */}
-      <nav className="border-t border-gray-100 bg-white">
-        <div className="max-w-7xl mx-auto px-4 flex items-center space-x-7 overflow-x-auto whitespace-nowrap text-[13px] font-semibold text-gray-800">
+      {/* 2. 서브 GNB 탭 메뉴 바 (가로줄 없음, 중앙 정렬 justify-center 적용) */}
+      <nav className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-center space-x-7 overflow-x-auto whitespace-nowrap text-[13px] font-semibold text-gray-800">
           <Link href="/" className="py-2.5 hover:text-blue-600 border-b-2 border-transparent">
             트래블맵
           </Link>
@@ -100,7 +82,7 @@ export default function Header() {
           <Link href="/" className="py-2.5 hover:text-blue-600 border-b-2 border-transparent">
             여행뉴스
           </Link>
-          {/* A안 확정: 커뮤니티/검색 자리에 '지역축제' 활성화 */}
+          {/* '지역축제' 활성화 */}
           <Link
             href="/"
             className="py-2.5 text-[#2292d8] border-b-2 border-[#2292d8] font-bold"
