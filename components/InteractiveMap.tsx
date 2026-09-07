@@ -35,6 +35,7 @@ interface InteractiveMapProps {
 }
 
 const KAKAO_KEY = 'eb3a51361a63acc8e8877f7307febc8a';
+const TODAY_STR = '2026-09-04';
 
 export default function InteractiveMap({
   festivals,
@@ -243,8 +244,6 @@ export default function InteractiveMap({
       overlayRef.current.setMap(null);
     }
 
-    const todayStr = '2026-09-04';
-
     // 상태별 마커 SVG 생성 함수 (그린: #059669, 레드: #e83428, 그레이: #64748b)
     const createMarkerSvg = (fillColor: string, innerColor: string) => {
       const svg = `
@@ -282,9 +281,9 @@ export default function InteractiveMap({
       const pos = new window.kakao.maps.LatLng(fest.mapy, fest.mapx);
 
       let markerImage = ongoingMarkerImg;
-      if (fest.start_date <= todayStr && fest.end_date >= todayStr) {
+      if (fest.start_date <= TODAY_STR && fest.end_date >= TODAY_STR) {
         markerImage = ongoingMarkerImg;
-      } else if (fest.start_date > todayStr) {
+      } else if (fest.start_date > TODAY_STR) {
         markerImage = upcomingMarkerImg;
       } else {
         markerImage = endedMarkerImg;
@@ -328,11 +327,11 @@ export default function InteractiveMap({
       map.panTo(moveLatLon);
 
       let popupBadge = '<span class="bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">진행중</span>';
-      if (selectedFestival.start_date > todayStr) {
-        const d = Math.ceil((new Date(selectedFestival.start_date).getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24));
+      if (selectedFestival.start_date > TODAY_STR) {
+        const d = Math.ceil((new Date(selectedFestival.start_date).getTime() - new Date(TODAY_STR).getTime()) / (1000 * 60 * 60 * 24));
         const dText = d === 0 ? 'D-Day' : `D-${d}`;
         popupBadge = `<span class="bg-[#e83428] text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded">${dText}</span>`;
-      } else if (selectedFestival.end_date < todayStr) {
+      } else if (selectedFestival.end_date < TODAY_STR) {
         popupBadge = '<span class="bg-slate-500 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">종료</span>';
       }
 
