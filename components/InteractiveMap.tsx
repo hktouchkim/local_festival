@@ -81,62 +81,6 @@ export default function InteractiveMap({
     maxLng: number;
   } | null>(null);
 
-  // Ctrl/Cmd 스크롤 안내 힌트 상태
-  const [showScrollHint, setShowScrollHint] = useState(false);
-  const hintTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [isMac, setIsMac] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || ''));
-    }
-  }, []);
-
-  // 지도 영역 휠(Wheel) 이벤트 리스너 (Ctrl 또는 Cmd 키를 눌렀을 때만 줌 동작)
-  useEffect(() => {
-    const container = mapRef.current;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // 1. 맥은 MetaKey(Cmd), 윈도우/리눅스는 CtrlKey 체크
-      const isModifierPressed = e.metaKey || e.ctrlKey;
-
-      if (isModifierPressed) {
-        // 브라우저 줌 방지 및 지도 레벨 변경
-        e.preventDefault();
-        if (!kakaoMapInstance.current) return;
-        const map = kakaoMapInstance.current;
-        const currentLevel = map.getLevel();
-
-        if (e.deltaY < 0) {
-          // 위로 스크롤: 확대 (레벨 감소)
-          if (currentLevel > 1) {
-            map.setLevel(currentLevel - 1, { animate: true });
-          }
-        } else if (e.deltaY > 0) {
-          // 아래로 스크롤: 축소 (레벨 증가)
-          if (currentLevel < 14) {
-            map.setLevel(currentLevel + 1, { animate: true });
-          }
-        }
-      } else {
-        // 일반 스크롤: 브라우저 기본 스크롤 동작 허용하되, 안내 힌트 잠시 노출
-        setShowScrollHint(true);
-        if (hintTimeoutRef.current) clearTimeout(hintTimeoutRef.current);
-        hintTimeoutRef.current = setTimeout(() => {
-          setShowScrollHint(false);
-        }, 1200);
-      }
-    };
-
-    container.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      container.removeEventListener('wheel', handleWheel);
-      if (hintTimeoutRef.current) clearTimeout(hintTimeoutRef.current);
-    };
-  }, [isLoaded]);
-
   // 카카오 지도 스크립트 동적 로드 및 맵 초기화
   useEffect(() => {
     let isMounted = true;
@@ -196,8 +140,8 @@ export default function InteractiveMap({
         const map = new window.kakao.maps.Map(container, options);
         kakaoMapInstance.current = map;
 
-        // 기본 휠 줌 비활성화 (일반 스크롤 시 브라우저 스크롤 유지)
-        map.setZoomable(false);
+        // 마우스 휠 스크롤 시 즉시 줌 확대/축소 활성화
+        map.setZoomable(true);
 
         // 줌 컨트롤러 추가 (우측 버튼 줌은 언제든 가능)
         const zoomControl = new window.kakao.maps.ZoomControl();
@@ -825,18 +769,6 @@ export default function InteractiveMap({
 
       {/* 카카오맵이 마운트될 DOM 컨테이너 */}
       <div ref={mapRef} className="w-full h-full min-h-[500px] md:min-h-[560px] z-0" />
-
-      {/* Ctrl / Cmd 스크롤 안내 힌트 오버레이 (일반 스크롤 시 화면 중앙에 노출) */}
-      {showScrollHint && (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-2xs flex items-center justify-center z-40 pointer-events-none transition-opacity duration-200">
-          <div className="bg-[#0A2540]/95 text-white px-5 py-3 rounded-xl shadow-2xl border border-white/20 text-xs md:text-sm font-semibold flex items-center gap-2 animate-scale-in">
-            <span className="bg-white/20 px-2 py-0.5 rounded text-amber-300 font-mono text-xs">
-              {isMac ? '⌘ Command' : 'Ctrl'}
-            </span>
-            <span>키를 누른 채 스크롤하면 지도가 확대/축소됩니다.</span>
-          </div>
-        </div>
-      )}
 
       {/* 로딩 인디케이터 또는 에러 안내 */}
       {!isLoaded && !errorMsg && (
