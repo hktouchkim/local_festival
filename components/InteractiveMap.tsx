@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Festival } from '@/lib/data';
 import { Locate, Loader2, ChevronLeft, ChevronRight, MapPin, Calendar, Search, Filter, X } from 'lucide-react';
 
@@ -54,6 +55,7 @@ export default function InteractiveMap({
   showEnded,
   setShowEnded
 }: InteractiveMapProps) {
+  const router = useRouter();
   const mapRef = useRef<HTMLDivElement>(null);
   const kakaoMapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -335,7 +337,7 @@ export default function InteractiveMap({
       }
 
       const content = document.createElement('div');
-      content.className = 'bg-white rounded-xl shadow-2xl border border-gray-200 p-3 max-w-[240px] text-left transform -translate-y-12';
+      content.className = 'bg-white rounded-xl shadow-2xl border border-gray-200 p-3 max-w-[240px] text-left transform -translate-y-12 select-none';
       content.innerHTML = `
         <div class="flex items-center gap-1.5 mb-1.5">
           ${popupBadge}
@@ -343,10 +345,19 @@ export default function InteractiveMap({
         </div>
         <p class="text-[11px] text-gray-500 mb-1 truncate">${selectedFestival.addr1 || ''}</p>
         <p class="text-[10px] text-blue-600 font-medium mb-2">${selectedFestival.start_date} ~ ${selectedFestival.end_date}</p>
-        <a href="/festivals/${selectedFestival.id}" class="block text-center text-xs bg-[#0A2540] hover:bg-slate-800 text-white font-medium py-1.5 rounded-lg transition-colors">
+        <button type="button" id="kakao-overlay-detail-btn" class="w-full block text-center text-xs bg-[#0A2540] hover:bg-slate-800 text-white font-medium py-1.5 rounded-lg transition-colors cursor-pointer">
           상세보기 →
-        </a>
+        </button>
       `;
+
+      const detailBtn = content.querySelector('#kakao-overlay-detail-btn');
+      if (detailBtn) {
+        detailBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          router.push(`/festivals/${selectedFestival.id}`);
+        });
+      }
 
       const customOverlay = new window.kakao.maps.CustomOverlay({
         position: moveLatLon,
@@ -357,7 +368,7 @@ export default function InteractiveMap({
       customOverlay.setMap(map);
       overlayRef.current = customOverlay;
     }
-  }, [selectedFestival, isLoaded]);
+  }, [selectedFestival, isLoaded, router]);
 
   // 내 위치 찾기
   const handleFindMyLocation = () => {
@@ -676,13 +687,16 @@ export default function InteractiveMap({
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1">
                         <span className="truncate">{fest.start_date} ~ {fest.end_date}</span>
-                        <Link
-                          href={`/festivals/${fest.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-blue-600 font-semibold hover:underline flex-shrink-0 ml-1"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/festivals/${fest.id}`);
+                          }}
+                          className="text-blue-600 font-semibold hover:underline flex-shrink-0 ml-1 cursor-pointer"
                         >
                           상세 →
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </div>
