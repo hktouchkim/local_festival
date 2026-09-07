@@ -18,13 +18,17 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
   // D-Day 및 진행 상태 판별
   const todayStr = '2026-09-04';
   let badgeText = '진행 예정';
-  let badgeColor = 'bg-gray-100 text-gray-700';
+  let badgeColor = 'bg-[#e83428] text-white';
 
   if (festival.start_date <= todayStr && festival.end_date >= todayStr) {
     badgeText = '진행 중';
-    badgeColor = 'bg-blue-600 text-white';
+    badgeColor = 'bg-emerald-600 text-white';
+  } else if (festival.start_date > todayStr) {
+    const d = Math.ceil((new Date(festival.start_date).getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24));
+    badgeText = d === 0 ? 'D-Day (오늘 오픈)' : `D-${d} (진행 예정)`;
+    badgeColor = 'bg-[#e83428] text-white';
   } else if (festival.end_date < todayStr) {
-    badgeText = '종료';
+    badgeText = '종료된 축제';
     badgeColor = 'bg-gray-400 text-white';
   }
 

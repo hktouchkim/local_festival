@@ -19,6 +19,30 @@ export interface Festival {
   status: 'PUBLISHED' | 'HIDDEN';
   source: 'API' | 'MANUAL';
   created_at?: string;
+  event_status?: 'ONGOING' | 'UPCOMING' | 'ENDED';
+  d_day?: number;
+}
+
+// 서비스 기준일 (2026-09-04)
+export const SERVICE_TODAY = '2026-09-04';
+
+// D-day 계산 함수
+export function getFestivalDDay(startDateStr: string, baseDateStr: string = SERVICE_TODAY): number {
+  const start = new Date(startDateStr);
+  const base = new Date(baseDateStr);
+  const diffTime = start.getTime() - base.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+// 행사 진행 상태 판별 함수
+export function getFestivalStatus(startDateStr: string, endDateStr: string, baseDateStr: string = SERVICE_TODAY): 'ONGOING' | 'UPCOMING' | 'ENDED' {
+  if (startDateStr <= baseDateStr && endDateStr >= baseDateStr) {
+    return 'ONGOING';
+  } else if (startDateStr > baseDateStr) {
+    return 'UPCOMING';
+  } else {
+    return 'ENDED';
+  }
 }
 
 export const INITIAL_FESTIVALS: Festival[] = [

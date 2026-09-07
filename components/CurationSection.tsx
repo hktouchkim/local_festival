@@ -130,9 +130,25 @@ export default function CurationSection({
                     이미지 준비중
                   </div>
                 )}
-                {/* 행사 상태 뱃지 */}
-                <div className="absolute top-2.5 left-2.5">
-                  <span className="bg-[#0A2540]/85 backdrop-blur-xs text-white text-[11px] font-semibold px-2 py-0.5 rounded shadow">
+                {/* 행사 상태 뱃지 (A안: 진행중 / D-Day 표기) */}
+                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                  {fest.event_status === 'ONGOING' || (!fest.event_status && fest.start_date <= '2026-09-04' && fest.end_date >= '2026-09-04') ? (
+                    <span className="bg-emerald-600/90 backdrop-blur-xs text-white text-[11px] font-bold px-2 py-0.5 rounded shadow flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      진행 중
+                    </span>
+                  ) : (
+                    <span className="bg-[#e83428] text-white text-[11px] font-extrabold px-2 py-0.5 rounded shadow">
+                      {fest.d_day !== undefined && fest.d_day !== null
+                        ? (fest.d_day === 0 ? 'D-Day' : `D-${fest.d_day}`)
+                        : (fest.start_date > '2026-09-04' ? '진행 예정' : '종료')}
+                    </span>
+                  )}
+                </div>
+
+                {/* 지역 뱃지 (우측 상단) */}
+                <div className="absolute top-2.5 right-2.5">
+                  <span className="bg-[#0A2540]/85 backdrop-blur-xs text-white text-[10px] font-semibold px-1.5 py-0.5 rounded shadow">
                     {fest.addr1 ? fest.addr1.split(' ')[0] : '전국'}
                   </span>
                 </div>

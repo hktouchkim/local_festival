@@ -565,6 +565,21 @@ export default function InteractiveMap({
                           이미지없음
                         </div>
                       )}
+                      {/* 상태/D-day 미니 뱃지 */}
+                      <div className="absolute top-1 left-1">
+                        {fest.start_date <= '2026-09-04' && fest.end_date >= '2026-09-04' ? (
+                          <span className="bg-emerald-600 text-white text-[9px] font-bold px-1 py-0.2 rounded shadow-xs">
+                            진행중
+                          </span>
+                        ) : fest.start_date > '2026-09-04' ? (
+                          <span className="bg-[#e83428] text-white text-[9px] font-extrabold px-1 py-0.2 rounded shadow-xs">
+                            {(() => {
+                              const d = Math.ceil((new Date(fest.start_date).getTime() - new Date('2026-09-04').getTime()) / (1000 * 60 * 60 * 24));
+                              return d === 0 ? 'D-Day' : `D-${d}`;
+                            })()}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
 
                     {/* 축제 정보 */}
