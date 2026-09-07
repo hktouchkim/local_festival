@@ -85,12 +85,12 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
         </div>
 
         {/* 1. 상단 비주얼 영역 (대표 이미지 포스터) */}
-        <div className="w-full h-72 md:h-96 rounded-2xl overflow-hidden bg-gray-100 relative shadow-sm border border-gray-200">
+        <div className="w-full h-72 md:h-96 rounded-2xl overflow-hidden bg-slate-100 flex items-center justify-center relative shadow-sm border border-gray-200">
           {festival.firstimage ? (
             <img
               src={festival.firstimage}
               alt={festival.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-500 font-medium">
