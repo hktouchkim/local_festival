@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import InteractiveMap from '@/components/InteractiveMap';
 import CurationSection from '@/components/CurationSection';
+import MobileSearchListSection from '@/components/MobileSearchListSection';
 import { Festival } from '@/lib/data';
 
 const REGIONS = ['전국', '서울', '경기/인천', '강원', '충청', '전라', '경상', '제주'];
@@ -85,10 +86,10 @@ export default function Home() {
       <Header />
 
       {/* ========================================================= */}
-      {/* 1. 전면 와이드 지도 영역 (내부 플로팅 검색/필터 모듈 탑재)   */}
+      {/* 1. PC 전용 와이드 지도 영역 (모바일에서는 지도 미제공: hidden md:block) */}
       {/* ========================================================= */}
-      <section className="relative w-full bg-slate-100 border-b border-gray-200">
-        <div className="w-full h-[520px] md:h-[620px] relative">
+      <section className="hidden md:block relative w-full bg-slate-100 border-b border-gray-200">
+        <div className="w-full h-[620px] relative">
           <InteractiveMap
             festivals={festivals}
             selectedFestival={selectedFestival}
@@ -112,9 +113,9 @@ export default function Home() {
       </section>
 
       {/* ========================================================= */}
-      {/* 2. 하단 매거진형 4대 테마 큐레이션 섹션 (실제 TourAPI DB 기반)  */}
+      {/* 2. 4대 테마 큐레이션 섹션 (모바일에서는 최상단 우선 노출)   */}
       {/* ========================================================= */}
-      <main className="max-w-7xl mx-auto px-4 py-8 w-full space-y-4">
+      <main className="max-w-7xl mx-auto px-4 py-6 md:py-8 w-full space-y-6">
         {/* 섹션 1: 지금 가장 핫한 축제 TOP 10 */}
         <CurationSection
           title="지금 가장 핫한 축제 TOP 10"
@@ -146,6 +147,30 @@ export default function Home() {
           festivals={curationData.family}
           icon="users"
         />
+
+        {/* ========================================================= */}
+        {/* 3. 모바일 전용: 검색 필터 및 결과 카드 리스트 일체형 모듈 (md:hidden) */}
+        {/* ========================================================= */}
+        <div className="block md:hidden pt-4">
+          <MobileSearchListSection
+            festivals={festivals}
+            loading={loading}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            selectedRegion={selectedRegion}
+            setSelectedRegion={setSelectedRegion}
+            selectedPeriod={selectedPeriod}
+            setSelectedPeriod={setSelectedPeriod}
+            periodTabs={PERIOD_TABS}
+            regions={REGIONS}
+            showOngoing={showOngoing}
+            setShowOngoing={setShowOngoing}
+            showUpcoming={showUpcoming}
+            setShowUpcoming={setShowUpcoming}
+            showEnded={showEnded}
+            setShowEnded={setShowEnded}
+          />
+        </div>
       </main>
     </div>
   );
