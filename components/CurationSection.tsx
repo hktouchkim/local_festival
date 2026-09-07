@@ -1,5 +1,8 @@
+'use client';
+
+import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, MapPin, Sparkles, Music, Moon, Users } from 'lucide-react';
+import { Calendar, MapPin, Sparkles, Music, Moon, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Festival } from '@/lib/data';
 
 interface CurationSectionProps {
@@ -18,10 +21,48 @@ export default function CurationSection({
   icon = 'sparkles',
   onSelectOnMap
 }: CurationSectionProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // 스크롤 위치 감지하여 좌우 화살표 버튼의 활성화/비활성화 상태 업데이트
+  const checkScrollability = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 5);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 5);
+  };
+
+  useEffect(() => {
+    checkScrollability();
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkScrollability, { passive: true });
+      window.addEventListener('resize', checkScrollability);
+    }
+    return () => {
+      if (el) el.removeEventListener('scroll', checkScrollability);
+      window.removeEventListener('resize', checkScrollability);
+    };
+  }, [festivals]);
+
+  // 좌우 스크롤 이동 함수 (카드 2~3장 분량 약 560px 스무스 이동)
+  const handleScroll = (direction: 'left' | 'right') => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const scrollAmount = 560;
+    el.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+  };
+
   if (!festivals || festivals.length === 0) return null;
 
   return (
     <section className="py-6 border-b border-gray-100 last:border-b-0">
+      {/* 헤더 영역: 타이틀 + PC 전용 좌우 이동 화살표 네비게이션 */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-1.5 mb-1">
@@ -35,10 +76,41 @@ export default function CurationSection({
           </div>
           <p className="text-xs md:text-sm text-gray-500">{subtitle}</p>
         </div>
+
+        {/* PC 전용 <, > 네비게이션 버튼 (모바일에서는 숨김, 터치 스와이프 사용) */}
+        <div className="hidden md:flex items-center gap-1.5">
+          <button
+            onClick={() => handleScroll('left')}
+            disabled={!canScrollLeft}
+            className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+              canScrollLeft
+                ? 'border-gray-300 bg-white text-gray-800 hover:bg-slate-100 hover:border-gray-400 shadow-xs cursor-pointer active:scale-95'
+                : 'border-gray-200 bg-slate-50 text-gray-300 cursor-not-allowed opacity-50'
+            }`}
+            title="이전 축제 보기"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleScroll('right')}
+            disabled={!canScrollRight}
+            className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+              canScrollRight
+                ? 'border-gray-300 bg-white text-gray-800 hover:bg-slate-100 hover:border-gray-400 shadow-xs cursor-pointer active:scale-95'
+                : 'border-gray-200 bg-slate-50 text-gray-300 cursor-not-allowed opacity-50'
+            }`}
+            title="다음 축제 보기"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      {/* 가로 스와이프 캐러셀 컨테이너 */}
-      <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-thin scrollbar-thumb-gray-200">
+      {/* 가로 스와이프 캐러셀 컨테이너 (스크롤바 완전 숨김: no-scrollbar) */}
+      <div
+        ref={scrollContainerRef}
+        className="flex gap-4 overflow-x-auto pb-4 pt-1 no-scrollbar scroll-smooth"
+      >
         {festivals.map((fest) => {
           return (
             <div

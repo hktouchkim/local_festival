@@ -24,4 +24,12 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  /* 크로스 브라우징 스크롤바 숨김 유틸리티 */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
 }
