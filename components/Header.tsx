@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, Search, Shield, ChevronDown, ChevronUp } from 'lucide-react';
+import { Menu, Search, Shield, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 
 export default function Header() {
   const [isSubGnbOpen, setIsSubGnbOpen] = useState(false);
@@ -39,7 +39,10 @@ export default function Header() {
             />
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/admin" className="text-gray-400 hover:text-gray-700 text-xs flex items-center gap-0.5">
+            <Link href="/spec" className="text-gray-400 hover:text-[#0A2540] text-xs flex items-center gap-0.5" title="기획문서">
+              <FileText className="w-3.5 h-3.5" />
+            </Link>
+            <Link href="/admin" className="text-gray-400 hover:text-gray-700 text-xs flex items-center gap-0.5" title="관리자">
               <Shield className="w-3.5 h-3.5" />
             </Link>
             <button
@@ -120,6 +123,11 @@ export default function Header() {
               <Link href="/admin" className="text-gray-500 hover:text-[#0A2540] flex items-center gap-0.5">
                 <Shield className="w-3 h-3 text-gray-400" />
                 <span>관리자</span>
+              </Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/spec" className="text-gray-500 hover:text-[#0A2540] flex items-center gap-0.5 font-medium">
+                <FileText className="w-3 h-3 text-gray-400" />
+                <span>기획문서</span>
               </Link>
               <span className="text-gray-300">|</span>
               <span className="hover:text-black cursor-pointer">신문 구독</span>
