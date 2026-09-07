@@ -94,80 +94,82 @@ export default function Home() {
       <Header />
 
       {/* ========================================================= */}
-      {/* 1. 상단 인터랙티브 지도 히어로 섹션 (와이드 + 플로팅 오버레이) */}
+      {/* 1. 상단 필터 바 + 하단 지도 영역 2단 분리형 (B안)          */}
       {/* ========================================================= */}
-      <section ref={mapSectionRef} className="relative w-full bg-slate-900 overflow-hidden border-b border-gray-200">
-        {/* 인터랙티브 카카오 지도 (PC: 540px, 모바일: 400px) */}
-        <div className="w-full h-[400px] md:h-[540px] relative">
+      {/* 1-1. 상단 독립 검색 및 필터 컨트롤 바 */}
+      <section className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* 검색창 */}
+            <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="축제명을 입력해주세요"
+                className="w-full pl-9 pr-16 py-2 bg-slate-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2540] focus:bg-white"
+              />
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1.5 px-3 py-1 bg-[#0A2540] text-white text-xs font-semibold rounded hover:bg-slate-800 transition"
+              >
+                검색
+              </button>
+            </form>
+
+            {/* 기간 빠른 선택 탭 */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+              {PERIOD_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setSelectedPeriod(tab.key)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${
+                    selectedPeriod === tab.key
+                      ? 'bg-[#0A2540] text-white shadow-xs'
+                      : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 지역 선택 바 */}
+          <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-gray-100 overflow-x-auto pb-1">
+            <span className="text-xs text-gray-400 flex-shrink-0 font-medium">지역:</span>
+            {REGIONS.map((region) => (
+              <button
+                key={region}
+                onClick={() => setSelectedRegion(region)}
+                className={`text-xs px-2.5 py-1 rounded transition whitespace-nowrap ${
+                  selectedRegion === region
+                    ? 'font-bold text-[#0A2540] bg-blue-50 border border-blue-200'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                {region}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 1-2. 하단 시원한 전면 와이드 지도 영역 */}
+      <section ref={mapSectionRef} className="relative w-full bg-slate-100 border-b border-gray-200">
+        <div className="w-full h-[380px] md:h-[500px] relative">
           <InteractiveMap
             festivals={festivals}
             selectedFestival={selectedFestival}
             onSelectFestival={(fest) => setSelectedFestival(fest)}
           />
 
-          {/* 지도 상단 플로팅 검색 & 필터 오버레이 (반투명 글래스모피즘) */}
-          <div className="absolute top-4 left-4 right-4 md:right-auto md:w-[480px] z-20 pointer-events-auto">
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 p-3.5 space-y-3">
-              {/* 검색창 */}
-              <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="가고 싶은 축제명을 검색해보세요"
-                  className="w-full pl-9 pr-16 py-2 bg-slate-50 border border-gray-200 rounded-xl text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2540] focus:bg-white"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-1.5 px-3 py-1 bg-[#0A2540] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition"
-                >
-                  검색
-                </button>
-              </form>
-
-              {/* 기간 퀵 필터 칩 */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-                {PERIOD_TABS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setSelectedPeriod(tab.key)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition ${
-                      selectedPeriod === tab.key
-                        ? 'bg-[#0A2540] text-white shadow-xs'
-                        : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* 지역 선택 바 */}
-              <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 overflow-x-auto pb-0.5 scrollbar-none text-xs">
-                <span className="text-gray-400 flex-shrink-0 font-medium">지역:</span>
-                {REGIONS.map((region) => (
-                  <button
-                    key={region}
-                    onClick={() => setSelectedRegion(region)}
-                    className={`px-2 py-0.5 rounded transition whitespace-nowrap ${
-                      selectedRegion === region
-                        ? 'font-bold text-[#0A2540] bg-blue-50 border border-blue-200'
-                        : 'text-gray-500 hover:text-gray-900'
-                    }`}
-                  >
-                    {region}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* 지도 우측 하단 상태 안내 뱃지 */}
+          {/* 지도 하단 안내 뱃지 */}
           <div className="absolute bottom-4 right-4 z-20 pointer-events-none hidden md:block">
             <div className="bg-[#0A2540]/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-md flex items-center gap-1.5">
               <Compass className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
-              <span>지도 위 마커를 클릭하면 축제 정보를 바로 확인할 수 있습니다.</span>
+              <span>지도의 마커를 클릭하면 축제 위치와 세부 정보를 확인할 수 있습니다.</span>
             </div>
           </div>
         </div>
