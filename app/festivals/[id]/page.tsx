@@ -53,7 +53,7 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
     badgeColor = 'bg-[#e83428] text-white';
   } else if (festival.end_date < todayStr) {
     badgeText = '종료된 축제';
-    badgeColor = 'bg-gray-400 text-white';
+    badgeColor = 'bg-slate-500 text-white';
   }
 
   // TourAPI 서브 이미지 조회

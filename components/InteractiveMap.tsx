@@ -24,11 +24,13 @@ interface InteractiveMapProps {
   setSelectedRegion: (r: string) => void;
   periodTabs: { key: string; label: string }[];
   regions: string[];
-  // 진행중 / 예정 체크박스 상태
+  // 진행중 / 예정 / 종료 체크박스 상태
   showOngoing: boolean;
   setShowOngoing: (val: boolean) => void;
   showUpcoming: boolean;
   setShowUpcoming: (val: boolean) => void;
+  showEnded: boolean;
+  setShowEnded: (val: boolean) => void;
 }
 
 const KAKAO_KEY = 'eb3a51361a63acc8e8877f7307febc8a';
@@ -48,7 +50,9 @@ export default function InteractiveMap({
   showOngoing,
   setShowOngoing,
   showUpcoming,
-  setShowUpcoming
+  setShowUpcoming,
+  showEnded,
+  setShowEnded
 }: InteractiveMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const kakaoMapInstance = useRef<any>(null);
@@ -507,26 +511,45 @@ export default function InteractiveMap({
               ))}
             </div>
 
-            {/* 진행중 / 진행예정 체크박스 필터 */}
-            <div className="flex items-center gap-3 pt-1 border-t border-gray-100 text-[11px]">
-              <label className="flex items-center gap-1.5 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
+            {/* 진행중 / 진행예정 / 종료 체크박스 필터 */}
+            <div className="flex items-center gap-2.5 pt-1 border-t border-gray-100 text-[11px]">
+              <label className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
                 <input
                   type="checkbox"
                   checked={showOngoing}
                   onChange={(e) => setShowOngoing(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded text-[#0A2540] border-gray-300 focus:ring-0 accent-[#0A2540]"
+                  className="w-3.5 h-3.5 rounded text-emerald-600 border-gray-300 focus:ring-0 accent-emerald-600"
                 />
-                <span>진행 중</span>
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  진행 중
+                </span>
               </label>
 
-              <label className="flex items-center gap-1.5 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
+              <label className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
                 <input
                   type="checkbox"
                   checked={showUpcoming}
                   onChange={(e) => setShowUpcoming(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded text-[#0A2540] border-gray-300 focus:ring-0 accent-[#0A2540]"
+                  className="w-3.5 h-3.5 rounded text-[#e83428] border-gray-300 focus:ring-0 accent-[#e83428]"
                 />
-                <span>진행 예정</span>
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#e83428]" />
+                  진행 예정
+                </span>
+              </label>
+
+              <label className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
+                <input
+                  type="checkbox"
+                  checked={showEnded}
+                  onChange={(e) => setShowEnded(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded text-gray-500 border-gray-300 focus:ring-0 accent-gray-500"
+                />
+                <span className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                  종료
+                </span>
               </label>
             </div>
           </div>
@@ -565,20 +588,25 @@ export default function InteractiveMap({
                           이미지없음
                         </div>
                       )}
-                      {/* 상태/D-day 미니 뱃지 */}
+                      {/* 상태/D-day 미니 뱃지 (3단 차별화 색상) */}
                       <div className="absolute top-1 left-1">
                         {fest.start_date <= '2026-09-04' && fest.end_date >= '2026-09-04' ? (
-                          <span className="bg-emerald-600 text-white text-[9px] font-bold px-1 py-0.2 rounded shadow-xs">
+                          <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-0.5">
+                            <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
                             진행중
                           </span>
                         ) : fest.start_date > '2026-09-04' ? (
-                          <span className="bg-[#e83428] text-white text-[9px] font-extrabold px-1 py-0.2 rounded shadow-xs">
+                          <span className="bg-[#e83428] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs">
                             {(() => {
                               const d = Math.ceil((new Date(fest.start_date).getTime() - new Date('2026-09-04').getTime()) / (1000 * 60 * 60 * 24));
                               return d === 0 ? 'D-Day' : `D-${d}`;
                             })()}
                           </span>
-                        ) : null}
+                        ) : (
+                          <span className="bg-slate-500 text-white text-[9px] font-medium px-1.5 py-0.5 rounded shadow-xs">
+                            종료
+                          </span>
+                        )}
                       </div>
                     </div>
 

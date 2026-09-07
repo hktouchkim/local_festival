@@ -32,20 +32,23 @@ export async function GET(request: Request) {
   // 4. 기간/상태 필터
   const todayStr = '2026-09-04';
   const showOngoing = searchParams.get('ongoing') !== 'false';
-  const showUpcoming = searchParams.get('upcoming') !== 'false';
+  const showUpcoming = searchParams.get('upcoming') === 'true';
+  const showEnded = searchParams.get('ended') === 'true';
 
-  // 진행 상태 필터링 (진행중, 예정)
+  // 진행 상태 필터링 (진행중, 예정, 종료)
   list = list.filter(f => {
     const isOngoing = f.start_date <= todayStr && f.end_date >= todayStr;
     const isUpcoming = f.start_date > todayStr;
     const isEnded = f.end_date < todayStr;
 
-    // 만약 period가 ALL이고 체크박스가 둘 다 켜져있으면 진행중+예정 (종료 제외)
-    // 둘 다 꺼져있으면 표시하지 않음
-    if (!showOngoing && !showUpcoming) return false;
-    if (showOngoing && !showUpcoming) return isOngoing;
-    if (!showOngoing && showUpcoming) return isUpcoming;
-    return isOngoing || isUpcoming;
+    // 만약 모두 꺼져있으면 아무것도 노출하지 않음
+    if (!showOngoing && !showUpcoming && !showEnded) return false;
+    
+    let matched = false;
+    if (showOngoing && isOngoing) matched = true;
+    if (showUpcoming && isUpcoming) matched = true;
+    if (showEnded && isEnded) matched = true;
+    return matched;
   });
 
   // 시점(주말/월) 추가 필터링

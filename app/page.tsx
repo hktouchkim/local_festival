@@ -29,6 +29,7 @@ export default function Home() {
   const [selectedPeriod, setSelectedPeriod] = useState('ALL');
   const [showOngoing, setShowOngoing] = useState(true);
   const [showUpcoming, setShowUpcoming] = useState(false);
+  const [showEnded, setShowEnded] = useState(false);
   const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null);
 
   const mapSectionRef = useRef<HTMLDivElement>(null);
@@ -43,6 +44,7 @@ export default function Home() {
       if (selectedPeriod !== 'ALL') params.append('period', selectedPeriod);
       params.append('ongoing', showOngoing ? 'true' : 'false');
       params.append('upcoming', showUpcoming ? 'true' : 'false');
+      params.append('ended', showEnded ? 'true' : 'false');
 
       const res = await fetch(`/api/festivals?${params.toString()}`);
       const data = await res.json();
@@ -78,7 +80,7 @@ export default function Home() {
       fetchFestivals();
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedRegion, selectedPeriod, showOngoing, showUpcoming]);
+  }, [searchQuery, selectedRegion, selectedPeriod, showOngoing, showUpcoming, showEnded]);
 
   // 큐레이션 카드에서 '지도에서 보기' 클릭 시 상단 지도로 스무스 스크롤 및 마커 선택
   const handleSelectOnMap = (fest: Festival) => {
@@ -113,6 +115,8 @@ export default function Home() {
             setShowOngoing={setShowOngoing}
             showUpcoming={showUpcoming}
             setShowUpcoming={setShowUpcoming}
+            showEnded={showEnded}
+            setShowEnded={setShowEnded}
           />
         </div>
       </section>
