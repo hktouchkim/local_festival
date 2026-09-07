@@ -195,7 +195,12 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
           </div>
         </div>
 
-        {/* 4. 축제 상세 소개 본문 */}
+        {/* 4. 축제 현장 갤러리 (TourAPI 서브 이미지 연동 및 라이트박스) */}
+        {galleryImages.length > 0 && (
+          <FestivalGallery images={galleryImages} festivalTitle={festival.title} />
+        )}
+
+        {/* 5. 축제 상세 소개 본문 */}
         <section className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs">
           <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
             <FileText className="w-5 h-5 text-[#0A2540]" />
@@ -212,7 +217,7 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
           )}
         </section>
 
-        {/* 5. 행사 프로그램 일정표 (프로그램 데이터가 있을 경우 노출) */}
+        {/* 6. 행사 프로그램 일정표 (프로그램 데이터가 있을 경우 노출) */}
         {festival.program && (
           <section className="bg-white p-6 rounded-2xl border border-blue-100 shadow-xs bg-gradient-to-br from-white to-blue-50/30">
             <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-blue-100 flex items-center gap-2">
@@ -225,7 +230,7 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
           </section>
         )}
 
-        {/* 6. 부대행사 (subevent 데이터가 있을 경우 노출) */}
+        {/* 7. 부대행사 (subevent 데이터가 있을 경우 노출) */}
         {festival.subevent && (
           <section className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs">
             <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
@@ -236,11 +241,6 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
               {festival.subevent}
             </p>
           </section>
-        )}
-
-        {/* 7. 축제 현장 갤러리 (TourAPI 서브 이미지 연동 및 라이트박스) */}
-        {galleryImages.length > 0 && (
-          <FestivalGallery images={galleryImages} festivalTitle={festival.title} />
         )}
 
         {/* 8. 공식 홈페이지 및 바로가기 아웃링크 */}
