@@ -3,10 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import InteractiveMap from '@/components/InteractiveMap';
-import FestivalCard from '@/components/FestivalCard';
 import CurationSection from '@/components/CurationSection';
 import { Festival } from '@/lib/data';
-import { Search, MapPin, Sparkles, Filter, ChevronDown, RefreshCw, AlertCircle, Compass } from 'lucide-react';
 
 const REGIONS = ['전국', '서울', '경기/인천', '강원', '충청', '전라', '경상', '제주'];
 
@@ -158,46 +156,6 @@ export default function Home() {
           icon="users"
           onSelectOnMap={handleSelectOnMap}
         />
-
-        {/* 전체 탐색 결과 그리드 영역 */}
-        <section className="pt-8 mt-8 border-t border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 tracking-tight">전국 지역축제 전체 탐색</h3>
-              <p className="text-xs md:text-sm text-gray-500">
-                선택한 조건의 축제 <strong className="text-[#0A2540]">{festivals.length}</strong>개가 열리고 있습니다.
-              </p>
-            </div>
-            <button
-              onClick={fetchFestivals}
-              className="text-xs text-gray-500 hover:text-black flex items-center gap-1"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>새로고침</span>
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="py-20 text-center text-gray-400 text-sm">축제 목록을 불러오는 중...</div>
-          ) : festivals.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center border border-gray-200 shadow-xs">
-              <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-              <h4 className="font-bold text-gray-800 text-sm mb-1">일치하는 축제가 없습니다</h4>
-              <p className="text-xs text-gray-500">상단 지도에서 지역이나 기간 조건을 변경해 보세요.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {festivals.map((fest) => (
-                <FestivalCard
-                  key={fest.id}
-                  festival={fest}
-                  isSelected={selectedFestival?.id === fest.id}
-                  onClick={() => handleSelectOnMap(fest)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
       </main>
     </div>
   );
