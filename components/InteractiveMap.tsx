@@ -453,39 +453,31 @@ export default function InteractiveMap({
 
   return (
     <div className="w-full h-full relative overflow-hidden flex flex-col">
-      {/* 지도 상단 정보 바 (좌측) */}
-      <div className="absolute top-3 left-3 z-20 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-xl border border-gray-200 shadow-md text-xs flex items-center gap-2 pointer-events-none">
-        <span className="w-2.5 h-2.5 rounded-full bg-[#E11D48] animate-pulse"></span>
-        <span className="font-bold text-gray-900">전국 실시간 축제 지도</span>
-        <span className="text-gray-300">|</span>
-        <span className="text-gray-600 font-medium">현재 화면에 {visibleFestivals.length}개 축제</span>
-      </div>
-
-      {/* 내 위치 중심 이동 플로팅 버튼 */}
-      <div className="absolute top-3 left-64 md:left-72 z-20 hidden sm:block">
+      {/* 내 위치 중심 이동 플로팅 버튼 (우측 하단으로 이동) */}
+      <div className="absolute bottom-6 right-6 z-20 hidden sm:block">
         <button
           onClick={handleFindMyLocation}
           disabled={isLocating}
-          className="bg-white hover:bg-slate-50 text-gray-800 px-3.5 py-2 rounded-xl border border-gray-200 shadow-md text-xs font-bold flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+          className="bg-white hover:bg-slate-50 text-gray-800 px-4 py-2.5 rounded-xl border border-gray-300 shadow-xl text-xs font-bold flex items-center gap-2 transition active:scale-95 disabled:opacity-50"
           title="내 주변 축제 찾기"
         >
           {isLocating ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
           ) : (
-            <Locate className="w-3.5 h-3.5 text-blue-600" />
+            <Locate className="w-4 h-4 text-blue-600" />
           )}
           <span>{isLocating ? '위치 찾는 중...' : '내 위치'}</span>
         </button>
 
         {locationError && (
-          <div className="absolute top-11 left-0 bg-red-600 text-white text-[11px] px-2.5 py-1 rounded shadow-lg whitespace-nowrap animate-fade-in">
+          <div className="absolute bottom-12 right-0 bg-red-600 text-white text-[11px] px-2.5 py-1 rounded shadow-lg whitespace-nowrap animate-fade-in">
             {locationError}
           </div>
         )}
       </div>
 
-      {/* 모바일 전용: 상단 검색/목록 보기 플로팅 버튼 (질문 2 B안 모바일 목록 덮기 진입) */}
-      <div className="absolute top-14 left-3 right-3 z-20 md:hidden flex items-center gap-2">
+      {/* 모바일 전용: 상단 검색/목록 보기 플로팅 버튼 */}
+      <div className="absolute top-3 left-3 right-3 z-20 md:hidden flex items-center gap-2">
         <button
           onClick={() => setIsMobileOverlayOpen(true)}
           className="flex-1 bg-white/95 backdrop-blur-md border-2 border-[#0A2540] shadow-lg rounded-xl px-3.5 py-2.5 flex items-center justify-between text-left transition active:scale-98"
@@ -509,34 +501,21 @@ export default function InteractiveMap({
       </div>
 
       {/* ========================================================= */}
-      {/* 2. PC 전용: 지도 우측 플로팅 필터 & 실시간 영역 축제 목록 패널 */}
+      {/* 2. PC 전용: 지도 좌측 플로팅 필터 & 실시간 축제 검색결과 패널 */}
       {/* ========================================================= */}
       <div
-        className={`hidden md:flex absolute top-3 right-3 bottom-3 z-30 transition-all duration-300 items-stretch ${
-          isPanelOpen ? 'translate-x-0' : 'translate-x-[calc(100%-36px)]'
+        className={`hidden md:flex absolute top-3 left-3 bottom-3 z-30 transition-all duration-300 items-stretch ${
+          isPanelOpen ? 'translate-x-0' : '-translate-x-[calc(100%-36px)]'
         }`}
       >
-        {/* 접기/펼치기 토글 탭 버튼 */}
-        <button
-          onClick={() => setIsPanelOpen(!isPanelOpen)}
-          className="w-9 h-14 bg-white/95 backdrop-blur-md self-center rounded-l-xl border border-r-0 border-gray-200 shadow-lg flex items-center justify-center text-gray-700 hover:text-black hover:bg-white transition"
-          title={isPanelOpen ? '목록 접기' : '현재 지도 축제 목록 펼치기'}
-        >
-          {isPanelOpen ? (
-            <ChevronRight className="w-5 h-5" />
-          ) : (
-            <ChevronLeft className="w-5 h-5 text-blue-600" />
-          )}
-        </button>
-
-        {/* 패널 메인 바디 */}
+        {/* 패널 메인 바디 (좌측 배치) */}
         <div className="w-80 lg:w-92 bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden">
           {/* 패널 헤더: 검색어 입력 및 필터 */}
           <div className="p-3.5 border-b border-gray-100 bg-white/90 space-y-2.5">
             {/* 상단: 건수 + 검색 초기화 버튼 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs text-gray-900">화면 내 축제</span>
+                <span className="font-bold text-xs text-gray-900">축제 검색결과</span>
                 <span className="bg-blue-50 text-[#0A2540] font-extrabold text-[11px] px-2 py-0.5 rounded-full border border-blue-200">
                   {visibleFestivals.length}
                 </span>
@@ -552,7 +531,7 @@ export default function InteractiveMap({
               </button>
             </div>
 
-            {/* 시인성 강화된 검색창 (진한 테두리 및 포커스 대비) */}
+            {/* 시인성 강화된 검색창 */}
             <div className="relative">
               <Search className="w-4 h-4 text-[#0A2540] absolute left-3 top-3 font-bold" />
               <input
@@ -572,32 +551,75 @@ export default function InteractiveMap({
               )}
             </div>
 
-            {/* 추천 테마 단축키 칩 버튼 (전체 배제, 단축키 토글 형태) */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">추천 목록</span>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                {[
-                  { key: 'HOT', label: '🔥 HOT 10' },
-                  { key: 'MUSIC', label: '🎵 뮤직&페스티벌' },
-                  { key: 'NIGHT', label: '🌙 야간·빛' },
-                  { key: 'FAMILY', label: '👨‍👩‍👧 가족·체험' }
-                ].map((item) => {
-                  const isActive = selectedTheme === item.key;
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => setSelectedTheme(isActive ? null : item.key)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition border ${
-                        isActive
-                          ? 'bg-[#0A2540] text-white border-[#0A2540] shadow-xs'
-                          : 'bg-slate-50 text-gray-600 border-gray-200 hover:bg-slate-100 hover:border-gray-300'
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* 추천 배너 (추천목록 단어 삭제, 핫/뮤직/야간 3개만, 세로 나열 배너 디자인) */}
+            <div className="space-y-1.5">
+              {[
+                {
+                  key: 'HOT',
+                  title: 'HOT 10 축제',
+                  desc: '지금 가장 주목받는 인기 축제',
+                  badge: '🔥 인기',
+                  bgGradient: 'from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100',
+                  activeBg: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-sm border-transparent',
+                  borderColor: 'border-amber-200/80',
+                  textColor: 'text-amber-950',
+                  descColor: 'text-amber-700'
+                },
+                {
+                  key: 'MUSIC',
+                  title: '뮤직 & 페스티벌',
+                  desc: '음악·공연·버스킹·락 축제',
+                  badge: '🎵 공연',
+                  bgGradient: 'from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100',
+                  activeBg: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm border-transparent',
+                  borderColor: 'border-blue-200/80',
+                  textColor: 'text-blue-950',
+                  descColor: 'text-blue-700'
+                },
+                {
+                  key: 'NIGHT',
+                  title: '야간 & 빛 축제',
+                  desc: '낭만 가득 불꽃·달빛·드론쇼',
+                  badge: '🌙 야경',
+                  bgGradient: 'from-purple-50 to-slate-100 hover:from-purple-100 hover:to-slate-200',
+                  activeBg: 'bg-gradient-to-r from-purple-700 to-[#0A2540] text-white shadow-sm border-transparent',
+                  borderColor: 'border-purple-200/80',
+                  textColor: 'text-purple-950',
+                  descColor: 'text-purple-700'
+                }
+              ].map((item) => {
+                const isActive = selectedTheme === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => setSelectedTheme(isActive ? null : item.key)}
+                    className={`w-full px-3 py-2 rounded-xl text-left transition border flex items-center justify-between ${
+                      isActive
+                        ? item.activeBg
+                        : `bg-gradient-to-r ${item.bgGradient} ${item.borderColor}`
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`font-extrabold text-xs tracking-tight ${isActive ? 'text-white' : item.textColor}`}>
+                          {item.title}
+                        </span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-white/80 text-gray-700 border border-gray-200'
+                        }`}>
+                          {item.badge}
+                        </span>
+                      </div>
+                      <p className={`text-[11px] mt-0.5 ${isActive ? 'text-white/90' : item.descColor}`}>
+                        {item.desc}
+                      </p>
+                    </div>
+                    <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-gray-400'}`}>
+                      {isActive ? '✓ 적용중' : '→'}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* 퀵 기간 칩 (이번 주 반영) */}
@@ -751,6 +773,19 @@ export default function InteractiveMap({
             지도를 움직이면 화면 안의 축제가 자동으로 갱신됩니다.
           </div>
         </div>
+
+        {/* 접기/펼치기 토글 탭 버튼 (패널 우측에 위치) */}
+        <button
+          onClick={() => setIsPanelOpen(!isPanelOpen)}
+          className="w-9 h-14 bg-white/95 backdrop-blur-md self-center rounded-r-xl border border-l-0 border-gray-200 shadow-lg flex items-center justify-center text-gray-700 hover:text-black hover:bg-white transition"
+          title={isPanelOpen ? '목록 접기' : '축제 검색결과 펼치기'}
+        >
+          {isPanelOpen ? (
+            <ChevronLeft className="w-5 h-5" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-blue-600" />
+          )}
+        </button>
       </div>
 
       {/* 카카오맵이 마운트될 DOM 컨테이너 */}
