@@ -12,6 +12,9 @@ interface FestivalDetailPageProps {
   params: { id: string };
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const SERVICE_KEY = 'ND%2F0A%2FDqAIORcQUsJJGJ44TYbdnvLk%2FHbdxZ%2BjAhZKY0NjfZyNLHLEmCrS8QFPGAmEw8WK380t4ugQqMuYo0TA%3D%3D';
 
 // 한국관광공사 TourAPI 서브 이미지 목록 실시간 조회
