@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Festival, SERVICE_TODAY } from '@/lib/data';
-import { Locate, Loader2, ChevronLeft, ChevronRight, MapPin, Search, X } from 'lucide-react';
+import { Locate, Loader2, ChevronLeft, ChevronRight, MapPin, Search, X, RotateCcw } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -20,10 +20,12 @@ interface InteractiveMapProps {
   setSearchQuery: (q: string) => void;
   selectedPeriod: string;
   setSelectedPeriod: (p: string) => void;
-  selectedRegion: string;
-  setSelectedRegion: (r: string) => void;
   periodTabs: { key: string; label: string }[];
-  regions: string[];
+  // 추천 단축키 테마 상태
+  selectedTheme: string | null;
+  setSelectedTheme: (t: string | null) => void;
+  // 전체 초기화
+  onResetFilters: () => void;
   // 진행중 / 예정 / 종료 체크박스 상태
   showOngoing: boolean;
   setShowOngoing: (val: boolean) => void;
@@ -44,10 +46,10 @@ export default function InteractiveMap({
   setSearchQuery,
   selectedPeriod,
   setSelectedPeriod,
-  selectedRegion,
-  setSelectedRegion,
   periodTabs,
-  regions,
+  selectedTheme,
+  setSelectedTheme,
+  onResetFilters,
   showOngoing,
   setShowOngoing,
   showUpcoming,
@@ -446,14 +448,17 @@ export default function InteractiveMap({
     });
   }, [festivals, mapBounds]);
 
+  // 모바일 전용 전체화면 팝업 오버레이 상태
+  const [isMobileOverlayOpen, setIsMobileOverlayOpen] = useState(false);
+
   return (
-    <div className="w-full h-full min-h-[500px] md:min-h-[560px] relative rounded-2xl border border-gray-200 overflow-hidden flex flex-col shadow-sm">
-      {/* 지도 상단 정보 바 */}
-      <div className="absolute top-3 left-3 z-20 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-xs flex items-center gap-2 pointer-events-none">
+    <div className="w-full h-full relative overflow-hidden flex flex-col">
+      {/* 지도 상단 정보 바 (좌측) */}
+      <div className="absolute top-3 left-3 z-20 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-xl border border-gray-200 shadow-md text-xs flex items-center gap-2 pointer-events-none">
         <span className="w-2.5 h-2.5 rounded-full bg-[#E11D48] animate-pulse"></span>
-        <span className="font-semibold text-gray-800">카카오맵 전국 실시간 지도</span>
-        <span className="text-gray-400">|</span>
-        <span className="text-gray-500 font-medium">현재 화면에 {visibleFestivals.length}개 축제 노출</span>
+        <span className="font-bold text-gray-900">전국 실시간 축제 지도</span>
+        <span className="text-gray-300">|</span>
+        <span className="text-gray-600 font-medium">현재 화면에 {visibleFestivals.length}개 축제</span>
       </div>
 
       {/* 내 위치 중심 이동 플로팅 버튼 */}
@@ -461,7 +466,7 @@ export default function InteractiveMap({
         <button
           onClick={handleFindMyLocation}
           disabled={isLocating}
-          className="bg-white hover:bg-slate-50 text-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 shadow-md text-xs font-bold flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+          className="bg-white hover:bg-slate-50 text-gray-800 px-3.5 py-2 rounded-xl border border-gray-200 shadow-md text-xs font-bold flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
           title="내 주변 축제 찾기"
         >
           {isLocating ? (
@@ -473,17 +478,41 @@ export default function InteractiveMap({
         </button>
 
         {locationError && (
-          <div className="absolute top-10 left-0 bg-red-600 text-white text-[11px] px-2.5 py-1 rounded shadow-lg whitespace-nowrap animate-fade-in">
+          <div className="absolute top-11 left-0 bg-red-600 text-white text-[11px] px-2.5 py-1 rounded shadow-lg whitespace-nowrap animate-fade-in">
             {locationError}
           </div>
         )}
       </div>
 
+      {/* 모바일 전용: 상단 검색/목록 보기 플로팅 버튼 (질문 2 B안 모바일 목록 덮기 진입) */}
+      <div className="absolute top-14 left-3 right-3 z-20 md:hidden flex items-center gap-2">
+        <button
+          onClick={() => setIsMobileOverlayOpen(true)}
+          className="flex-1 bg-white/95 backdrop-blur-md border-2 border-[#0A2540] shadow-lg rounded-xl px-3.5 py-2.5 flex items-center justify-between text-left transition active:scale-98"
+        >
+          <div className="flex items-center gap-2 text-xs font-semibold text-gray-800 truncate">
+            <Search className="w-4 h-4 text-[#0A2540] flex-shrink-0" />
+            <span className="truncate">{searchQuery || '축제명 또는 주소를 입력하세요.'}</span>
+          </div>
+          <span className="bg-[#0A2540] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
+            {visibleFestivals.length}개
+          </span>
+        </button>
+        <button
+          onClick={handleFindMyLocation}
+          disabled={isLocating}
+          className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg rounded-xl p-2.5 text-blue-600 active:scale-95"
+          title="내 위치"
+        >
+          <Locate className="w-4 h-4" />
+        </button>
+      </div>
+
       {/* ========================================================= */}
-      {/* 2. 지도 우측 플로팅 필터 & 실시간 영역 축제 목록 패널 (A안)   */}
+      {/* 2. PC 전용: 지도 우측 플로팅 필터 & 실시간 영역 축제 목록 패널 */}
       {/* ========================================================= */}
       <div
-        className={`absolute top-3 right-3 bottom-3 z-30 transition-all duration-300 flex items-stretch ${
+        className={`hidden md:flex absolute top-3 right-3 bottom-3 z-30 transition-all duration-300 items-stretch ${
           isPanelOpen ? 'translate-x-0' : 'translate-x-[calc(100%-36px)]'
         }`}
       >
@@ -501,72 +530,86 @@ export default function InteractiveMap({
         </button>
 
         {/* 패널 메인 바디 */}
-        <div className="w-72 sm:w-80 md:w-88 bg-white/95 backdrop-blur-md rounded-r-2xl sm:rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden">
+        <div className="w-80 lg:w-92 bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden">
           {/* 패널 헤더: 검색어 입력 및 필터 */}
-          <div className="p-3 border-b border-gray-100 bg-white/80 space-y-2">
+          <div className="p-3.5 border-b border-gray-100 bg-white/90 space-y-2.5">
+            {/* 상단: 건수 + 검색 초기화 버튼 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs text-gray-900">지도 영역 내 축제</span>
-                <span className="bg-blue-50 text-blue-600 font-extrabold text-[11px] px-2 py-0.5 rounded-full">
+                <span className="font-bold text-xs text-gray-900">화면 내 축제</span>
+                <span className="bg-blue-50 text-[#0A2540] font-extrabold text-[11px] px-2 py-0.5 rounded-full border border-blue-200">
                   {visibleFestivals.length}
                 </span>
               </div>
+              {/* 우측 상단 검색/필터 초기화 버튼 */}
               <button
-                onClick={handleFindMyLocation}
-                className="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5 font-medium sm:hidden"
+                onClick={onResetFilters}
+                className="text-[11px] text-gray-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-md transition flex items-center gap-1 font-semibold"
+                title="모든 검색어 및 필터 조건 초기화"
               >
-                <Locate className="w-3 h-3" />
-                <span>내위치</span>
+                <RotateCcw className="w-3 h-3" />
+                <span>초기화</span>
               </button>
             </div>
 
-            {/* 미니 검색창 */}
+            {/* 시인성 강화된 검색창 (진한 테두리 및 포커스 대비) */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
+              <Search className="w-4 h-4 text-[#0A2540] absolute left-3 top-3 font-bold" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="결과 내 검색..."
-                className="w-full pl-8 pr-7 py-1.5 bg-slate-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0A2540]"
+                placeholder="축제명 또는 주소를 입력하세요."
+                className="w-full pl-9 pr-8 py-2.5 bg-white border-2 border-slate-300 focus:border-[#0A2540] rounded-xl text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none shadow-xs transition"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 p-0.5"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
-            {/* 지역 선택 칩 */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
-              {regions.map((region) => (
-                <button
-                  key={region}
-                  onClick={() => setSelectedRegion(region)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap transition ${
-                    selectedRegion === region
-                      ? 'bg-blue-50 text-[#0A2540] font-bold border border-blue-200'
-                      : 'text-gray-500 hover:text-gray-900 bg-slate-50'
-                  }`}
-                >
-                  {region}
-                </button>
-              ))}
+            {/* 추천 테마 단축키 칩 버튼 (전체 배제, 단축키 토글 형태) */}
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">추천 목록</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {[
+                  { key: 'HOT', label: '🔥 HOT 10' },
+                  { key: 'MUSIC', label: '🎵 뮤직&페스티벌' },
+                  { key: 'NIGHT', label: '🌙 야간·빛' },
+                  { key: 'FAMILY', label: '👨‍👩‍👧 가족·체험' }
+                ].map((item) => {
+                  const isActive = selectedTheme === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => setSelectedTheme(isActive ? null : item.key)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition border ${
+                        isActive
+                          ? 'bg-[#0A2540] text-white border-[#0A2540] shadow-xs'
+                          : 'bg-slate-50 text-gray-600 border-gray-200 hover:bg-slate-100 hover:border-gray-300'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* 퀵 기간 칩 */}
+            {/* 퀵 기간 칩 (이번 주 반영) */}
             <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
               {periodTabs.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setSelectedPeriod(tab.key)}
-                  className={`px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition ${
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition ${
                     selectedPeriod === tab.key
-                      ? 'bg-[#0A2540] text-white shadow-xs'
-                      : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                      ? 'bg-blue-50 text-[#0A2540] border border-blue-200 font-bold'
+                      : 'bg-slate-100 text-gray-500 hover:bg-slate-200'
                   }`}
                 >
                   {tab.label}
@@ -575,7 +618,7 @@ export default function InteractiveMap({
             </div>
 
             {/* 진행중 / 진행예정 / 종료 체크박스 필터 */}
-            <div className="flex items-center gap-2.5 pt-1 border-t border-gray-100 text-[11px]">
+            <div className="flex items-center gap-2.5 pt-1.5 border-t border-gray-100 text-[11px]">
               <label className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
                 <input
                   type="checkbox"
@@ -647,11 +690,11 @@ export default function InteractiveMap({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">
-                          이미지없음
+                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-[10px]">
+                          한경
                         </div>
                       )}
-                      {/* 상태/D-day 미니 뱃지 (3단 차별화 색상) */}
+                      {/* 상태/D-day 미니 뱃지 */}
                       <div className="absolute top-1 left-1">
                         {fest.start_date <= TODAY_STR && fest.end_date >= TODAY_STR ? (
                           <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-0.5">

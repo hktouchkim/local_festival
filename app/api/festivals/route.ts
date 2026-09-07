@@ -52,11 +52,33 @@ export async function GET(request: Request) {
     return matched;
   });
 
-  // 시점(주말/월) 추가 필터링
-  if (period === 'WEEKEND') {
-    const weekendStart = '2026-09-05';
-    const weekendEnd = '2026-09-06';
-    list = list.filter(f => f.start_date <= weekendEnd && f.end_date >= weekendStart);
+  // 4.1 테마(추천 단축키) 필터
+  const theme = searchParams.get('theme');
+  if (theme) {
+    if (theme === 'HOT') {
+      // 진행중 최근 개막 또는 진행 예정 임박
+      list = list.filter(f => {
+        const isOngoingRecent = f.start_date <= todayStr && f.end_date >= todayStr && f.start_date >= '2026-08-15';
+        const isUpcomingNear = f.start_date > todayStr;
+        return isOngoingRecent || isUpcomingNear;
+      });
+    } else if (theme === 'MUSIC') {
+      const regex = /뮤직|락|재즈|콘서트|페스티벌|음악|버스킹|비어|맥주/i;
+      list = list.filter(f => regex.test(f.title) || (f.overview && regex.test(f.overview)));
+    } else if (theme === 'NIGHT') {
+      const regex = /야간|빛|불꽃|달빛|밤|나이트|드론/i;
+      list = list.filter(f => regex.test(f.title) || (f.overview && regex.test(f.overview)));
+    } else if (theme === 'FAMILY') {
+      const regex = /어린이|가족|만화|체험|공룡|인형|생태|키즈/i;
+      list = list.filter(f => regex.test(f.title) || (f.overview && regex.test(f.overview)));
+    }
+  }
+
+  // 시점(이번 주/월) 추가 필터링
+  if (period === 'WEEK' || period === 'WEEKEND') {
+    const weekStart = '2026-08-31';
+    const weekEnd = '2026-09-06';
+    list = list.filter(f => f.start_date <= weekEnd && f.end_date >= weekStart);
   } else if (period === 'MONTH') {
     const monthStart = '2026-09-01';
     const monthEnd = '2026-09-30';
