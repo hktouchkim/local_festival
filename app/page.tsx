@@ -30,7 +30,7 @@ export default function Home() {
   const [selectedRegion, setSelectedRegion] = useState('전국');
   const [selectedPeriod, setSelectedPeriod] = useState('ALL');
   const [showOngoing, setShowOngoing] = useState(true);
-  const [showUpcoming, setShowUpcoming] = useState(true);
+  const [showUpcoming, setShowUpcoming] = useState(false);
   const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null);
 
   const mapSectionRef = useRef<HTMLDivElement>(null);
