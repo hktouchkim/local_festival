@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import { Festival } from '@/lib/data';
-import { Shield, Plus, Eye, EyeOff, Search, Calendar, MapPin, CheckCircle, AlertCircle } from 'lucide-react';
+import { Shield, Plus, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminPage() {
   const [festivals, setFestivals] = useState<Festival[]>([]);

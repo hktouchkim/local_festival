@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Calendar, MapPin, ExternalLink, ImageOff } from 'lucide-react';
-import { Festival } from '@/lib/data';
+import { Festival, SERVICE_TODAY } from '@/lib/data';
 
 interface FestivalCardProps {
   festival: Festival;
@@ -16,7 +16,7 @@ export default function FestivalCard({
   onClick
 }: FestivalCardProps) {
   // 오늘 기준 진행 상태 판별
-  const todayStr = '2026-09-04';
+  const todayStr = SERVICE_TODAY;
   let badgeText = '진행 예정';
   let badgeColor = 'bg-gray-100 text-gray-700 border-gray-200';
 

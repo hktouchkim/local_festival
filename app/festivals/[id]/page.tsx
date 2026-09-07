@@ -2,10 +2,11 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import FestivalGallery, { GalleryImage } from '@/components/FestivalGallery';
 import { getFestivalById } from '@/lib/db';
+import { SERVICE_TODAY } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { 
   Calendar, MapPin, Clock, DollarSign, Phone, Globe, ArrowLeft, Share2, 
-  Users, Sparkles, Building2, Ticket, Award, Info, FileText
+  Users, Sparkles, Building2, Ticket, FileText
 } from 'lucide-react';
 
 interface FestivalDetailPageProps {
@@ -46,7 +47,7 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
   }
 
   // D-Day 및 진행 상태 판별
-  const todayStr = '2026-09-04';
+  const todayStr = SERVICE_TODAY;
   let badgeText = '진행 예정';
   let badgeColor = 'bg-[#e83428] text-white';
 

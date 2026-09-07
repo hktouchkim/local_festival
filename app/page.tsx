@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import InteractiveMap from '@/components/InteractiveMap';
 import CurationSection from '@/components/CurationSection';
@@ -31,8 +31,6 @@ export default function Home() {
   const [showUpcoming, setShowUpcoming] = useState(false);
   const [showEnded, setShowEnded] = useState(false);
   const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null);
-
-  const mapSectionRef = useRef<HTMLDivElement>(null);
 
   // 1. 축제 검색/필터 데이터 로드
   const fetchFestivals = async () => {
@@ -82,14 +80,6 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [searchQuery, selectedRegion, selectedPeriod, showOngoing, showUpcoming, showEnded]);
 
-  // 큐레이션 카드에서 '지도에서 보기' 클릭 시 상단 지도로 스무스 스크롤 및 마커 선택
-  const handleSelectOnMap = (fest: Festival) => {
-    setSelectedFestival(fest);
-    if (mapSectionRef.current) {
-      mapSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col text-slate-900 font-sans">
       <Header />
@@ -97,7 +87,7 @@ export default function Home() {
       {/* ========================================================= */}
       {/* 1. 전면 와이드 지도 영역 (내부 플로팅 검색/필터 모듈 탑재)   */}
       {/* ========================================================= */}
-      <section ref={mapSectionRef} className="relative w-full bg-slate-100 border-b border-gray-200">
+      <section className="relative w-full bg-slate-100 border-b border-gray-200">
         <div className="w-full h-[520px] md:h-[620px] relative">
           <InteractiveMap
             festivals={festivals}
@@ -131,7 +121,6 @@ export default function Home() {
           subtitle="실시간으로 많은 여행객이 찾고 있는 이번 시즌 최고의 축제를 만나보세요."
           festivals={curationData.hot}
           icon="sparkles"
-          onSelectOnMap={handleSelectOnMap}
         />
 
         {/* 섹션 2: 흥 폭발! 뮤직 & 페스티벌 */}
@@ -140,7 +129,6 @@ export default function Home() {
           subtitle="열정적인 락, 감미로운 재즈, 시원한 비어 페스티벌까지!"
           festivals={curationData.music}
           icon="music"
-          onSelectOnMap={handleSelectOnMap}
         />
 
         {/* 섹션 3: 낭만 가득 야간 & 빛 축제 */}
@@ -149,7 +137,6 @@ export default function Home() {
           subtitle="밤하늘을 수놓는 화려한 불꽃과 드론 라이트쇼, 달빛 산책길."
           festivals={curationData.night}
           icon="moon"
-          onSelectOnMap={handleSelectOnMap}
         />
 
         {/* 섹션 4: 온 가족 & 아이와 함께 가기 좋은 축제 */}
@@ -158,7 +145,6 @@ export default function Home() {
           subtitle="오감 만족 체험 프로그램과 즐거운 캐릭터·생태 축제."
           festivals={curationData.family}
           icon="users"
-          onSelectOnMap={handleSelectOnMap}
         />
       </main>
     </div>

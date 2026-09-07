@@ -2,7 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { Festival, INITIAL_FESTIVALS } from './data';
 
 const databaseUrl = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_cSNzgHjhd4p7@ep-dry-wildflower-aypqx72r-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const sql = neon(databaseUrl);
+export const sql = neon(databaseUrl);
 
 // 테이블 자동 생성 및 초기 데이터 시딩
 export async function initDatabase() {

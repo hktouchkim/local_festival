@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { neon } from '@neondatabase/serverless';
-
-const databaseUrl = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_cSNzgHjhd4p7@ep-dry-wildflower-aypqx72r-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const sql = neon(databaseUrl);
+import { sql } from '@/lib/db';
+import { SERVICE_TODAY } from '@/lib/data';
 
 export async function GET() {
   try {
-    const today = '2026-09-04';
+    const today = SERVICE_TODAY;
 
     // 1. 지금 가장 핫한 축제 TOP 10 (진행 중 + 예정 균형 배치)
     const hotList = await sql`

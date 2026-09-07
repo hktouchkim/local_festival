@@ -3,23 +3,20 @@
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Calendar, MapPin, Sparkles, Music, Moon, Users, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Festival } from '@/lib/data';
+import { Festival, SERVICE_TODAY } from '@/lib/data';
 
 interface CurationSectionProps {
   title: string;
   subtitle: string;
   festivals: Festival[];
-  badgeColor?: string;
   icon?: 'sparkles' | 'music' | 'moon' | 'users';
-  onSelectOnMap?: (festival: Festival) => void;
 }
 
 export default function CurationSection({
   title,
   subtitle,
   festivals,
-  icon = 'sparkles',
-  onSelectOnMap
+  icon = 'sparkles'
 }: CurationSectionProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -133,7 +130,7 @@ export default function CurationSection({
                 )}
                 {/* 행사 상태 뱃지 (A안: 진행중 / D-Day 표기) */}
                 <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                  {fest.event_status === 'ONGOING' || (!fest.event_status && fest.start_date <= '2026-09-04' && fest.end_date >= '2026-09-04') ? (
+                  {fest.event_status === 'ONGOING' || (!fest.event_status && fest.start_date <= SERVICE_TODAY && fest.end_date >= SERVICE_TODAY) ? (
                     <span className="bg-emerald-600/90 backdrop-blur-xs text-white text-[11px] font-bold px-2 py-0.5 rounded shadow flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                       진행 중
@@ -142,7 +139,7 @@ export default function CurationSection({
                     <span className="bg-[#e83428] text-white text-[11px] font-extrabold px-2 py-0.5 rounded shadow">
                       {fest.d_day !== undefined && fest.d_day !== null
                         ? (fest.d_day === 0 ? 'D-Day' : `D-${fest.d_day}`)
-                        : (fest.start_date > '2026-09-04' ? '진행 예정' : '종료')}
+                        : (fest.start_date > SERVICE_TODAY ? '진행 예정' : '종료')}
                     </span>
                   )}
                 </div>

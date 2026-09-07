@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Festival } from '@/lib/data';
-import { Locate, Loader2, ChevronLeft, ChevronRight, MapPin, Calendar, Search, Filter, X } from 'lucide-react';
+import { Festival, SERVICE_TODAY } from '@/lib/data';
+import { Locate, Loader2, ChevronLeft, ChevronRight, MapPin, Search, X } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -35,7 +34,7 @@ interface InteractiveMapProps {
 }
 
 const KAKAO_KEY = 'eb3a51361a63acc8e8877f7307febc8a';
-const TODAY_STR = '2026-09-04';
+const TODAY_STR = SERVICE_TODAY;
 
 export default function InteractiveMap({
   festivals,
@@ -654,15 +653,15 @@ export default function InteractiveMap({
                       )}
                       {/* 상태/D-day 미니 뱃지 (3단 차별화 색상) */}
                       <div className="absolute top-1 left-1">
-                        {fest.start_date <= '2026-09-04' && fest.end_date >= '2026-09-04' ? (
+                        {fest.start_date <= TODAY_STR && fest.end_date >= TODAY_STR ? (
                           <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-0.5">
                             <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
                             진행중
                           </span>
-                        ) : fest.start_date > '2026-09-04' ? (
+                        ) : fest.start_date > TODAY_STR ? (
                           <span className="bg-[#e83428] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs">
                             {(() => {
-                              const d = Math.ceil((new Date(fest.start_date).getTime() - new Date('2026-09-04').getTime()) / (1000 * 60 * 60 * 24));
+                              const d = Math.ceil((new Date(fest.start_date).getTime() - new Date(TODAY_STR).getTime()) / (1000 * 60 * 60 * 24));
                               return d === 0 ? 'D-Day' : `D-${d}`;
                             })()}
                           </span>

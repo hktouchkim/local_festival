@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getFestivals, addManualFestival, toggleFestivalStatus } from '@/lib/db';
+import { SERVICE_TODAY } from '@/lib/data';
 
 // GET: 축제 목록 조회 (사용자 화면용 필터 또는 관리자용 전체 조회)
 export async function GET(request: Request) {
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   // 4. 기간/상태 필터
-  const todayStr = '2026-09-04';
+  const todayStr = SERVICE_TODAY;
   const showOngoing = searchParams.get('ongoing') !== 'false';
   const showUpcoming = searchParams.get('upcoming') === 'true';
   const showEnded = searchParams.get('ended') === 'true';
