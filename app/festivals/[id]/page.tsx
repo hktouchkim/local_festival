@@ -1,11 +1,35 @@
 import Link from 'next/link';
 import Header from '@/components/Header';
+import FestivalGallery, { GalleryImage } from '@/components/FestivalGallery';
 import { getFestivalById } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { Calendar, MapPin, Clock, DollarSign, Phone, Globe, ArrowLeft, Share2 } from 'lucide-react';
 
 interface FestivalDetailPageProps {
   params: { id: string };
+}
+
+const SERVICE_KEY = 'ND%2F0A%2FDqAIORcQUsJJGJ44TYbdnvLk%2FHbdxZ%2BjAhZKY0NjfZyNLHLEmCrS8QFPGAmEw8WK380t4ugQqMuYo0TA%3D%3D';
+
+// 한국관광공사 TourAPI 서브 이미지 목록 실시간 조회
+async function fetchFestivalImages(contentId?: string): Promise<GalleryImage[]> {
+  if (!contentId || contentId.startsWith('fest_')) return [];
+  try {
+    const url = `https://apis.data.go.kr/B551011/KorService2/detailImage2?serviceKey=${SERVICE_KEY}&numOfRows=20&pageNo=1&MobileOS=ETC&MobileApp=LocalFestivalApp&_type=json&contentId=${contentId}&imageYN=Y`;
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    const json = await res.json();
+    const items = json.response?.body?.items?.item;
+    if (!items) return [];
+    const list = Array.isArray(items) ? items : [items];
+    return list.map((item: any) => ({
+      originimgurl: item.originimgurl,
+      smallimageurl: item.smallimageurl || item.originimgurl,
+      imgname: item.imgname || ''
+    }));
+  } catch (e) {
+    console.error('Failed to fetch festival images:', e);
+    return [];
+  }
 }
 
 export default async function FestivalDetailPage({ params }: FestivalDetailPageProps) {
@@ -32,6 +56,9 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
     badgeColor = 'bg-gray-400 text-white';
   }
 
+  // TourAPI 서브 이미지 조회
+  const galleryImages = await fetchFestivalImages(festival.contentid);
+
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
       <Header />
@@ -51,7 +78,7 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
           </div>
         </div>
 
-        {/* 1. 상단 비주얼 영역 (대표 이미지) */}
+        {/* 1. 상단 비주얼 영역 (대표 이미지 포스터) */}
         <div className="w-full h-64 md:h-96 rounded-2xl overflow-hidden bg-gray-100 relative shadow-sm border border-gray-200">
           {festival.firstimage ? (
             <img
@@ -140,7 +167,12 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
           )}
         </section>
 
-        {/* 5. 공식 홈페이지 및 바로가기 아웃링크 */}
+        {/* 5. 축제 현장 갤러리 (A안: TourAPI 서브 이미지 연동 및 라이트박스) */}
+        {galleryImages.length > 0 && (
+          <FestivalGallery images={galleryImages} festivalTitle={festival.title} />
+        )}
+
+        {/* 6. 공식 홈페이지 및 바로가기 아웃링크 */}
         {festival.homepage && (
           <div className="mt-6 text-center">
             <a
