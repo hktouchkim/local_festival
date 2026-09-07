@@ -16,6 +16,13 @@ export interface Festival {
   sponsor2?: string;
   tel?: string;
   homepage?: string;
+  program?: string;
+  eventplace?: string;
+  agelimit?: string;
+  spendtimefestival?: string;
+  subevent?: string;
+  festivalgrade?: string;
+  bookingplace?: string;
   status: 'PUBLISHED' | 'HIDDEN';
   source: 'API' | 'MANUAL';
   created_at?: string;
