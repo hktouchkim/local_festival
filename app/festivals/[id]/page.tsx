@@ -195,19 +195,14 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
           </div>
         </div>
 
-        {/* 4. 축제 현장 갤러리 (TourAPI 서브 이미지 연동 및 라이트박스) */}
-        {galleryImages.length > 0 && (
-          <FestivalGallery images={galleryImages} festivalTitle={festival.title} />
-        )}
-
-        {/* 5. 축제 상세 소개 본문 */}
+        {/* 4. 축제 상세 소개 본문 (값 부재 시에도 모듈 영역 유지) */}
         <section className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs">
           <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
             <FileText className="w-5 h-5 text-[#0A2540]" />
             <span>축제 소개</span>
           </h2>
           <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-            {festival.overview || '상세 축제 소개 정보가 준비 중입니다.'}
+            {festival.overview?.trim() || '상세 축제 소개 정보가 준비 중입니다.'}
           </p>
           {(festival.sponsor1 || festival.sponsor2) && (
             <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 flex items-center gap-2">
@@ -217,20 +212,24 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
           )}
         </section>
 
-        {/* 6. 행사 프로그램 일정표 (프로그램 데이터가 있을 경우 노출) */}
-        {festival.program && (
-          <section className="bg-white p-6 rounded-2xl border border-blue-100 shadow-xs bg-gradient-to-br from-white to-blue-50/30">
-            <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-blue-100 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-blue-600" />
-              <span>주요 행사 프로그램</span>
-            </h2>
+        {/* 5. 행사 프로그램 일정표 (값 부재 시에도 모듈 영역 유지) */}
+        <section className="bg-white p-6 rounded-2xl border border-blue-100 shadow-xs bg-gradient-to-br from-white to-blue-50/30">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-blue-100 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            <span>주요 행사 프로그램</span>
+          </h2>
+          {festival.program?.trim() ? (
             <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-line font-mono bg-white p-4 rounded-xl border border-blue-100/80">
               {festival.program}
             </div>
-          </section>
-        )}
+          ) : (
+            <p className="text-sm text-gray-500 leading-relaxed py-2">
+              등록된 주요 행사 프로그램 정보가 없습니다. 상세 일정은 공식 홈페이지를 참고해주세요.
+            </p>
+          )}
+        </section>
 
-        {/* 7. 부대행사 (subevent 데이터가 있을 경우 노출) */}
+        {/* 6. 부대행사 (subevent 데이터가 있을 경우 노출) */}
         {festival.subevent && (
           <section className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs">
             <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
@@ -241,6 +240,11 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
               {festival.subevent}
             </p>
           </section>
+        )}
+
+        {/* 7. 축제 현장 갤러리 (원복: TourAPI 서브 이미지 연동 및 라이트박스) */}
+        {galleryImages.length > 0 && (
+          <FestivalGallery images={galleryImages} festivalTitle={festival.title} />
         )}
 
         {/* 8. 공식 홈페이지 및 바로가기 아웃링크 */}
