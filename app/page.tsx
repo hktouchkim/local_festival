@@ -158,20 +158,20 @@ export default function Home() {
 
       {/* 1-2. 하단 시원한 전면 와이드 지도 영역 */}
       <section ref={mapSectionRef} className="relative w-full bg-slate-100 border-b border-gray-200">
-        <div className="w-full h-[380px] md:h-[500px] relative">
+        <div className="w-full h-[480px] md:h-[580px] relative">
           <InteractiveMap
             festivals={festivals}
             selectedFestival={selectedFestival}
             onSelectFestival={(fest) => setSelectedFestival(fest)}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            selectedPeriod={selectedPeriod}
+            setSelectedPeriod={setSelectedPeriod}
+            selectedRegion={selectedRegion}
+            setSelectedRegion={setSelectedRegion}
+            periodTabs={PERIOD_TABS}
+            regions={REGIONS}
           />
-
-          {/* 지도 하단 안내 뱃지 */}
-          <div className="absolute bottom-4 right-4 z-20 pointer-events-none hidden md:block">
-            <div className="bg-[#0A2540]/90 backdrop-blur-xs text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-md flex items-center gap-1.5">
-              <Compass className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
-              <span>지도의 마커를 클릭하면 축제 위치와 세부 정보를 확인할 수 있습니다.</span>
-            </div>
-          </div>
         </div>
       </section>
 
