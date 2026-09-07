@@ -229,18 +229,22 @@ export default async function FestivalDetailPage({ params }: FestivalDetailPageP
           )}
         </section>
 
-        {/* 6. 부대행사 (subevent 데이터가 있을 경우 노출) */}
-        {festival.subevent && (
-          <section className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs">
-            <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
-              <Ticket className="w-5 h-5 text-[#0A2540]" />
-              <span>부대행사 및 특별 프로그램</span>
-            </h2>
+        {/* 6. 부대행사 (데이터 유무와 상관없이 모듈 영역 유지) */}
+        <section className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
+            <Ticket className="w-5 h-5 text-[#0A2540]" />
+            <span>부대행사 및 특별 프로그램</span>
+          </h2>
+          {festival.subevent?.trim() ? (
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
               {festival.subevent}
             </p>
-          </section>
-        )}
+          ) : (
+            <p className="text-sm text-gray-500 leading-relaxed py-2">
+              등록된 부대행사 및 특별 프로그램 정보가 없습니다.
+            </p>
+          )}
+        </section>
 
         {/* 7. 축제 현장 갤러리 (원복: TourAPI 서브 이미지 연동 및 라이트박스) */}
         {galleryImages.length > 0 && (
