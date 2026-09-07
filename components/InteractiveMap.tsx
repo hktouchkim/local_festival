@@ -325,13 +325,29 @@ export default function InteractiveMap({
     }
 
     if (selectedFestival && selectedFestival.mapy && selectedFestival.mapx) {
-      const moveLatLon = new window.kakao.maps.LatLng(
-        selectedFestival.mapy,
-        selectedFestival.mapx
-      );
+      const targetLat = Number(selectedFestival.mapy);
+      const targetLng = Number(selectedFestival.mapx);
+      const markerLatLon = new window.kakao.maps.LatLng(targetLat, targetLng);
 
       map.setLevel(7, { animate: true });
-      map.panTo(moveLatLon);
+
+      // PC 환경에서 2단 패널(검색패널+상세패널 총 너비 약 680~740px) 노출 시
+      // 마커가 패널에 가려지지 않도록 우측 가용 영역 중앙에 오도록 오프셋 패닝
+      const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+      if (isDesktop && map.getProjection) {
+        try {
+          const proj = map.getProjection();
+          const point = proj.pointFromCoords(markerLatLon);
+          // 좌측 2단 패널 너비(약 700px)의 절반인 약 350px만큼 중심점을 좌측으로 오프셋 주어 마커를 화면 우측에 배치
+          const offsetPoint = new window.kakao.maps.Point(point.x - 350, point.y);
+          const newCenterCoords = proj.coordsFromPoint(offsetPoint);
+          map.panTo(newCenterCoords);
+        } catch (e) {
+          map.panTo(markerLatLon);
+        }
+      } else {
+        map.panTo(markerLatLon);
+      }
 
       let popupBadge = '<span class="bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">진행중</span>';
       if (selectedFestival.start_date > TODAY_STR) {
@@ -366,7 +382,7 @@ export default function InteractiveMap({
       }
 
       const customOverlay = new window.kakao.maps.CustomOverlay({
-        position: moveLatLon,
+        position: markerLatLon,
         content: content,
         yAnchor: 1.0,
       });
@@ -782,18 +798,20 @@ export default function InteractiveMap({
             </div>
           </div>
 
-          {/* 접기/펼치기 토글 탭 버튼 (패널 우측에 위치) */}
-          <button
-            onClick={() => setIsPanelOpen(!isPanelOpen)}
-            className="w-9 h-14 bg-white/95 backdrop-blur-md self-center rounded-r-xl border border-l-0 border-gray-200 shadow-lg flex items-center justify-center text-gray-700 hover:text-black hover:bg-white transition flex-shrink-0"
-            title={isPanelOpen ? '목록 접기' : '축제 검색결과 펼치기'}
-          >
-            {isPanelOpen ? (
-              <ChevronLeft className="w-5 h-5" />
-            ) : (
-              <ChevronRight className="w-5 h-5 text-blue-600" />
-            )}
-          </button>
+          {/* 접기/펼치기 토글 탭 버튼 (패널 우측에 위치: 2단 상세 패널 노출 시에는 어색함 방지를 위해 숨김 처리 - C안) */}
+          {!selectedFestival && (
+            <button
+              onClick={() => setIsPanelOpen(!isPanelOpen)}
+              className="w-9 h-14 bg-white/95 backdrop-blur-md self-center rounded-r-xl border border-l-0 border-gray-200 shadow-lg flex items-center justify-center text-gray-700 hover:text-black hover:bg-white transition flex-shrink-0"
+              title={isPanelOpen ? '목록 접기' : '축제 검색결과 펼치기'}
+            >
+              {isPanelOpen ? (
+                <ChevronLeft className="w-5 h-5" />
+              ) : (
+                <ChevronRight className="w-5 h-5 text-blue-600" />
+              )}
+            </button>
+          )}
         </div>
 
         {/* 2단 상세 패널 (네이버지도 스타일: 검색 모듈 우측에 동일 너비로 나란히 표시) */}
