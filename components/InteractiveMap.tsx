@@ -180,8 +180,8 @@ export default function InteractiveMap({
       try {
         const container = mapRef.current;
         const options = {
-          center: new window.kakao.maps.LatLng(35.9, 127.8), // 초기 한반도 전역 뷰
-          level: 13,
+          center: new window.kakao.maps.LatLng(36.1, 127.8), // 초기 한반도 중심 뷰
+          level: 12, // 기존 13에서 한 단계 확대
         };
 
         const map = new window.kakao.maps.Map(container, options);
