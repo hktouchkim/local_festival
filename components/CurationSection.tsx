@@ -113,9 +113,10 @@ export default function CurationSection({
       >
         {festivals.map((fest) => {
           return (
-            <div
+            <Link
               key={fest.id}
-              className="flex-shrink-0 w-64 md:w-72 bg-white rounded-xl border border-gray-200 hover:border-gray-400 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden group flex flex-col"
+              href={`/festivals/${fest.id}`}
+              className="flex-shrink-0 w-64 md:w-72 bg-white rounded-xl border border-gray-200 hover:border-gray-400 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden group flex flex-col cursor-pointer"
             >
               {/* 이미지 썸네일 */}
               <div className="relative w-full h-40 bg-slate-100 overflow-hidden">
@@ -171,28 +172,8 @@ export default function CurationSection({
                     </div>
                   </div>
                 </div>
-
-                {/* 하단 액션 버튼 */}
-                <div className="mt-3.5 pt-2.5 border-t border-gray-100 flex items-center gap-2">
-                  <Link
-                    href={`/festivals/${fest.id}`}
-                    className="flex-1 py-1.5 text-center bg-slate-50 hover:bg-slate-100 text-gray-700 rounded text-xs font-semibold transition"
-                  >
-                    상세보기
-                  </Link>
-                  {onSelectOnMap && (
-                    <button
-                      onClick={() => onSelectOnMap(fest)}
-                      className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#0A2540] rounded text-xs font-semibold flex items-center gap-1 transition"
-                      title="상단 지도에서 위치 확인"
-                    >
-                      <MapPin className="w-3 h-3 text-[#2292d8]" />
-                      <span>지도</span>
-                    </button>
-                  )}
-                </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
