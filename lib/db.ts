@@ -123,6 +123,13 @@ export async function getFestivalById(id: string | number): Promise<Festival | n
       sponsor2: r.sponsor2,
       tel: r.tel,
       homepage: r.homepage,
+      program: r.program,
+      eventplace: r.eventplace,
+      agelimit: r.agelimit,
+      spendtimefestival: r.spendtimefestival,
+      subevent: r.subevent,
+      festivalgrade: r.festivalgrade,
+      bookingplace: r.bookingplace,
       status: r.status,
       source: r.source,
       created_at: r.created_at
