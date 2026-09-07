@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Festival } from '@/lib/data';
+import { Locate, Loader2 } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -26,15 +27,18 @@ export default function InteractiveMap({
   const kakaoMapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const overlayRef = useRef<any>(null);
+  const myLocationOverlayRef = useRef<any>(null);
+
   const [isLoaded, setIsLoaded] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // 카카오 지도 스크립트 동적 로드 및 맵 초기화
   useEffect(() => {
     let isMounted = true;
 
     const loadKakaoSDK = () => {
-      // 1. 이미 kakao.maps 객체가 존재하는 경우
       if (window.kakao && window.kakao.maps) {
         window.kakao.maps.load(() => {
           if (isMounted) initKakaoMap();
@@ -42,7 +46,6 @@ export default function InteractiveMap({
         return;
       }
 
-      // 2. 이미 script 태그가 삽입되어 있는지 확인
       const existingScript = document.getElementById('kakao-map-script');
       if (existingScript) {
         existingScript.addEventListener('load', () => {
@@ -53,7 +56,6 @@ export default function InteractiveMap({
         return;
       }
 
-      // 3. 신규 스크립트 태그 동적 삽입
       const script = document.createElement('script');
       script.id = 'kakao-map-script';
       script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&autoload=false&libraries=services,clusterer`;
@@ -84,8 +86,8 @@ export default function InteractiveMap({
       try {
         const container = mapRef.current;
         const options = {
-          center: new window.kakao.maps.LatLng(35.9, 127.8), // 한반도 정중앙 (남한 전역 및 제주도 포괄)
-          level: 13, // 서울부터 부산, 제주도까지 한눈에 보이는 축척
+          center: new window.kakao.maps.LatLng(35.9, 127.8), // 초기 한반도 전역 뷰
+          level: 13,
         };
 
         const map = new window.kakao.maps.Map(container, options);
@@ -115,7 +117,6 @@ export default function InteractiveMap({
 
     const map = kakaoMapInstance.current;
 
-    // 기존 마커 및 오버레이 제거
     markersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
     if (overlayRef.current) {
@@ -186,14 +187,104 @@ export default function InteractiveMap({
     }
   }, [selectedFestival, isLoaded]);
 
+  // 사용자 현재 위치(GPS) 조회 및 지도 중심 이동 (A안)
+  const handleFindMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('이 브라우저에서는 위치 정보를 지원하지 않습니다.');
+      return;
+    }
+
+    if (!isLoaded || !kakaoMapInstance.current || !window.kakao) return;
+
+    setIsLocating(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setIsLocating(false);
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const locPosition = new window.kakao.maps.LatLng(lat, lng);
+        const map = kakaoMapInstance.current;
+
+        // 1. 지도 줌인 및 중심 이동 (레벨 7: 구/시 단위 뷰)
+        map.setLevel(7, { animate: true });
+        map.panTo(locPosition);
+
+        // 2. 기존 내 위치 마커 제거
+        if (myLocationOverlayRef.current) {
+          myLocationOverlayRef.current.setMap(null);
+        }
+
+        // 3. 내 위치 전용 펄스 애니메이션 마커(파란색 점) 생성
+        const myLocContent = document.createElement('div');
+        myLocContent.className = 'relative flex items-center justify-center';
+        myLocContent.innerHTML = `
+          <div class="absolute w-8 h-8 bg-blue-500/30 rounded-full animate-ping"></div>
+          <div class="relative w-5 h-5 bg-blue-600 border-2 border-white rounded-full shadow-lg flex items-center justify-center">
+            <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+          </div>
+          <div class="absolute bottom-6 whitespace-nowrap bg-[#0A2540] text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-md">
+            내 위치
+          </div>
+        `;
+
+        const myLocOverlay = new window.kakao.maps.CustomOverlay({
+          position: locPosition,
+          content: myLocContent,
+          yAnchor: 0.5,
+          zIndex: 30
+        });
+
+        myLocOverlay.setMap(map);
+        myLocationOverlayRef.current = myLocOverlay;
+      },
+      (error) => {
+        setIsLocating(false);
+        console.warn('Geolocation error:', error);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError('위치 정보 접근 권한이 허용되지 않았습니다.');
+        } else {
+          setLocationError('현재 위치를 가져올 수 없습니다.');
+        }
+        setTimeout(() => setLocationError(null), 3000);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
   return (
     <div className="w-full h-full min-h-[450px] relative rounded-2xl border border-gray-200 overflow-hidden flex flex-col shadow-sm">
-      {/* 지도 상단 컨트롤 바 */}
+      {/* 지도 상단 정보 바 */}
       <div className="absolute top-3 left-3 z-20 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm text-xs flex items-center gap-2 pointer-events-none">
         <span className="w-2.5 h-2.5 rounded-full bg-[#E11D48] animate-pulse"></span>
         <span className="font-semibold text-gray-800">카카오맵 전국 실시간 지도</span>
         <span className="text-gray-400">|</span>
         <span className="text-gray-500 font-medium">{festivals.length}개 축제 표시</span>
+      </div>
+
+      {/* 내 위치 중심 이동 플로팅 버튼 (A안) */}
+      <div className="absolute top-3 right-14 z-20">
+        <button
+          onClick={handleFindMyLocation}
+          disabled={isLocating}
+          className="bg-white hover:bg-slate-50 text-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 shadow-md text-xs font-bold flex items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+          title="내 주변 축제 찾기"
+        >
+          {isLocating ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+          ) : (
+            <Locate className="w-3.5 h-3.5 text-blue-600" />
+          )}
+          <span>{isLocating ? '위치 찾는 중...' : '내 위치'}</span>
+        </button>
+
+        {/* 에러 팝업 */}
+        {locationError && (
+          <div className="absolute top-10 right-0 bg-red-600 text-white text-[11px] px-2.5 py-1 rounded shadow-lg whitespace-nowrap animate-fade-in">
+            {locationError}
+          </div>
+        )}
       </div>
 
       {/* 카카오맵이 마운트될 DOM 컨테이너 */}
@@ -220,7 +311,7 @@ export default function InteractiveMap({
 
       {/* 지도 하단 안내 바 */}
       <div className="bg-white/95 border-t border-gray-100 p-2 text-center text-xs text-gray-500 z-10">
-        💡 마커를 클릭하면 축제 위치로 확대되고 상세 팝업이 노출됩니다.
+        💡 '내 위치' 버튼을 누르면 현재 위치 주변의 축제를 한눈에 확인할 수 있습니다.
       </div>
     </div>
   );
