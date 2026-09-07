@@ -241,13 +241,58 @@ export default function InteractiveMap({
       overlayRef.current.setMap(null);
     }
 
+    const todayStr = '2026-09-04';
+
+    // 상태별 마커 SVG 생성 함수 (그린: #059669, 레드: #e83428, 그레이: #64748b)
+    const createMarkerSvg = (fillColor: string, innerColor: string) => {
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40">
+          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+          </filter>
+          <path d="M16 0C7.16 0 0 7.16 0 16c0 11.25 14.2 23.1 14.81 23.6a1.8 1.8 0 0 0 2.38 0C17.8 39.1 32 27.25 32 16 32 7.16 24.84 0 16 0z" fill="${fillColor}" filter="url(#shadow)"/>
+          <circle cx="16" cy="15" r="7" fill="${innerColor}"/>
+          <circle cx="16" cy="15" r="3" fill="#ffffff"/>
+        </svg>
+      `.trim();
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    };
+
+    const ongoingMarkerImg = new window.kakao.maps.MarkerImage(
+      createMarkerSvg('#059669', '#10b981'),
+      new window.kakao.maps.Size(28, 36),
+      { offset: new window.kakao.maps.Point(14, 36) }
+    );
+
+    const upcomingMarkerImg = new window.kakao.maps.MarkerImage(
+      createMarkerSvg('#e83428', '#fb7185'),
+      new window.kakao.maps.Size(28, 36),
+      { offset: new window.kakao.maps.Point(14, 36) }
+    );
+
+    const endedMarkerImg = new window.kakao.maps.MarkerImage(
+      createMarkerSvg('#64748b', '#94a3b8'),
+      new window.kakao.maps.Size(26, 33),
+      { offset: new window.kakao.maps.Point(13, 33) }
+    );
+
     const newMarkers = festivals.map(fest => {
       const pos = new window.kakao.maps.LatLng(fest.mapy, fest.mapx);
+
+      let markerImage = ongoingMarkerImg;
+      if (fest.start_date <= todayStr && fest.end_date >= todayStr) {
+        markerImage = ongoingMarkerImg;
+      } else if (fest.start_date > todayStr) {
+        markerImage = upcomingMarkerImg;
+      } else {
+        markerImage = endedMarkerImg;
+      }
 
       const marker = new window.kakao.maps.Marker({
         position: pos,
         map: map,
-        title: fest.title
+        title: fest.title,
+        image: markerImage
       });
 
       window.kakao.maps.event.addListener(marker, 'click', () => {
@@ -280,16 +325,25 @@ export default function InteractiveMap({
       map.setLevel(7, { animate: true });
       map.panTo(moveLatLon);
 
+      let popupBadge = '<span class="bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">진행중</span>';
+      if (selectedFestival.start_date > todayStr) {
+        const d = Math.ceil((new Date(selectedFestival.start_date).getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24));
+        const dText = d === 0 ? 'D-Day' : `D-${d}`;
+        popupBadge = `<span class="bg-[#e83428] text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded">${dText}</span>`;
+      } else if (selectedFestival.end_date < todayStr) {
+        popupBadge = '<span class="bg-slate-500 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">종료</span>';
+      }
+
       const content = document.createElement('div');
       content.className = 'bg-white rounded-xl shadow-2xl border border-gray-200 p-3 max-w-[240px] text-left transform -translate-y-12';
       content.innerHTML = `
         <div class="flex items-center gap-1.5 mb-1.5">
-          <span class="bg-[#0A2540] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">한경픽</span>
+          ${popupBadge}
           <span class="text-xs font-bold text-gray-900 truncate">${selectedFestival.title}</span>
         </div>
         <p class="text-[11px] text-gray-500 mb-1 truncate">${selectedFestival.addr1 || ''}</p>
         <p class="text-[10px] text-blue-600 font-medium mb-2">${selectedFestival.start_date} ~ ${selectedFestival.end_date}</p>
-        <a href="/festivals/${selectedFestival.id}" class="block text-center text-xs bg-[#2292d8] hover:bg-blue-600 text-white font-medium py-1 rounded transition-colors">
+        <a href="/festivals/${selectedFestival.id}" class="block text-center text-xs bg-[#0A2540] hover:bg-slate-800 text-white font-medium py-1.5 rounded-lg transition-colors">
           상세보기 →
         </a>
       `;
