@@ -29,11 +29,27 @@ export async function GET(request: Request) {
     list = list.filter(f => f.addr1 && f.addr1.includes(region.split('/')[0]));
   }
 
-  // 4. 기간 필터 (기획서 겹침 기준: start <= targetEnd && end >= targetStart)
+  // 4. 기간/상태 필터
   const todayStr = '2026-09-04';
-  if (period === 'ONGOING') {
-    list = list.filter(f => f.start_date <= todayStr && f.end_date >= todayStr);
-  } else if (period === 'WEEKEND') {
+  const showOngoing = searchParams.get('ongoing') !== 'false';
+  const showUpcoming = searchParams.get('upcoming') !== 'false';
+
+  // 진행 상태 필터링 (진행중, 예정)
+  list = list.filter(f => {
+    const isOngoing = f.start_date <= todayStr && f.end_date >= todayStr;
+    const isUpcoming = f.start_date > todayStr;
+    const isEnded = f.end_date < todayStr;
+
+    // 만약 period가 ALL이고 체크박스가 둘 다 켜져있으면 진행중+예정 (종료 제외)
+    // 둘 다 꺼져있으면 표시하지 않음
+    if (!showOngoing && !showUpcoming) return false;
+    if (showOngoing && !showUpcoming) return isOngoing;
+    if (!showOngoing && showUpcoming) return isUpcoming;
+    return isOngoing || isUpcoming;
+  });
+
+  // 시점(주말/월) 추가 필터링
+  if (period === 'WEEKEND') {
     const weekendStart = '2026-09-05';
     const weekendEnd = '2026-09-06';
     list = list.filter(f => f.start_date <= weekendEnd && f.end_date >= weekendStart);

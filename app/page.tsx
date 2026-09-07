@@ -11,8 +11,7 @@ import { Search, MapPin, Sparkles, Filter, ChevronDown, RefreshCw, AlertCircle, 
 const REGIONS = ['전국', '서울', '경기/인천', '강원', '충청', '전라', '경상', '제주'];
 
 const PERIOD_TABS = [
-  { key: 'ONGOING', label: '진행 중인 축제' },
-  { key: 'ALL', label: '전체' },
+  { key: 'ALL', label: '전체 일정' },
   { key: 'WEEKEND', label: '이번 주말' },
   { key: 'MONTH', label: '이번 달' }
 ];
@@ -29,7 +28,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('전국');
-  const [selectedPeriod, setSelectedPeriod] = useState('ONGOING');
+  const [selectedPeriod, setSelectedPeriod] = useState('ALL');
+  const [showOngoing, setShowOngoing] = useState(true);
+  const [showUpcoming, setShowUpcoming] = useState(true);
   const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null);
 
   const mapSectionRef = useRef<HTMLDivElement>(null);
@@ -42,6 +43,8 @@ export default function Home() {
       if (searchQuery.trim()) params.append('q', searchQuery.trim());
       if (selectedRegion !== '전국') params.append('region', selectedRegion);
       if (selectedPeriod !== 'ALL') params.append('period', selectedPeriod);
+      params.append('ongoing', showOngoing ? 'true' : 'false');
+      params.append('upcoming', showUpcoming ? 'true' : 'false');
 
       const res = await fetch(`/api/festivals?${params.toString()}`);
       const data = await res.json();
@@ -70,7 +73,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchFestivals();
-  }, [selectedRegion, selectedPeriod]);
+  }, [selectedRegion, selectedPeriod, showOngoing, showUpcoming]);
 
   useEffect(() => {
     fetchCuration();
@@ -118,21 +121,49 @@ export default function Home() {
               </button>
             </form>
 
-            {/* 기간 빠른 선택 탭 */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-              {PERIOD_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setSelectedPeriod(tab.key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${
-                    selectedPeriod === tab.key
-                      ? 'bg-[#0A2540] text-white shadow-xs'
-                      : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            {/* 상태 체크박스 & 기간 빠른 선택 탭 */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* 진행중 / 예정 체크박스 (하단 배치 연동) */}
+              <div className="flex items-center gap-2.5 bg-slate-50 border border-gray-200 px-3 py-1.5 rounded-lg text-xs">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none font-semibold text-gray-700 hover:text-black">
+                  <input
+                    type="checkbox"
+                    checked={showOngoing}
+                    onChange={(e) => setShowOngoing(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-[#0A2540] border-gray-300 focus:ring-0 accent-[#0A2540]"
+                  />
+                  <span>진행 중인 축제</span>
+                </label>
+
+                <span className="text-gray-300">|</span>
+
+                <label className="flex items-center gap-1.5 cursor-pointer select-none font-semibold text-gray-700 hover:text-black">
+                  <input
+                    type="checkbox"
+                    checked={showUpcoming}
+                    onChange={(e) => setShowUpcoming(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-[#0A2540] border-gray-300 focus:ring-0 accent-[#0A2540]"
+                  />
+                  <span>진행 예정</span>
+                </label>
+              </div>
+
+              {/* 시점 선택 탭 */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+                {PERIOD_TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setSelectedPeriod(tab.key)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${
+                      selectedPeriod === tab.key
+                        ? 'bg-[#0A2540] text-white shadow-xs'
+                        : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -171,6 +202,10 @@ export default function Home() {
             setSelectedRegion={setSelectedRegion}
             periodTabs={PERIOD_TABS}
             regions={REGIONS}
+            showOngoing={showOngoing}
+            setShowOngoing={setShowOngoing}
+            showUpcoming={showUpcoming}
+            setShowUpcoming={setShowUpcoming}
           />
         </div>
       </section>

@@ -24,6 +24,11 @@ interface InteractiveMapProps {
   setSelectedRegion: (r: string) => void;
   periodTabs: { key: string; label: string }[];
   regions: string[];
+  // 진행중 / 예정 체크박스 상태
+  showOngoing: boolean;
+  setShowOngoing: (val: boolean) => void;
+  showUpcoming: boolean;
+  setShowUpcoming: (val: boolean) => void;
 }
 
 const KAKAO_KEY = 'eb3a51361a63acc8e8877f7307febc8a';
@@ -39,7 +44,11 @@ export default function InteractiveMap({
   selectedRegion,
   setSelectedRegion,
   periodTabs,
-  regions
+  regions,
+  showOngoing,
+  setShowOngoing,
+  showUpcoming,
+  setShowUpcoming
 }: InteractiveMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const kakaoMapInstance = useRef<any>(null);
@@ -479,6 +488,29 @@ export default function InteractiveMap({
                   {tab.label}
                 </button>
               ))}
+            </div>
+
+            {/* 진행중 / 진행예정 체크박스 필터 */}
+            <div className="flex items-center gap-3 pt-1 border-t border-gray-100 text-[11px]">
+              <label className="flex items-center gap-1.5 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
+                <input
+                  type="checkbox"
+                  checked={showOngoing}
+                  onChange={(e) => setShowOngoing(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded text-[#0A2540] border-gray-300 focus:ring-0 accent-[#0A2540]"
+                />
+                <span>진행 중</span>
+              </label>
+
+              <label className="flex items-center gap-1.5 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
+                <input
+                  type="checkbox"
+                  checked={showUpcoming}
+                  onChange={(e) => setShowUpcoming(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded text-[#0A2540] border-gray-300 focus:ring-0 accent-[#0A2540]"
+                />
+                <span>진행 예정</span>
+              </label>
             </div>
           </div>
 
