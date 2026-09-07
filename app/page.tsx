@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import InteractiveMap from '@/components/InteractiveMap';
 import { Festival } from '@/lib/data';
@@ -11,7 +12,10 @@ const PERIOD_TABS = [
   { key: 'MONTH', label: '이번 달' }
 ];
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const initialFestivalId = searchParams.get('festivalId');
+
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,6 +44,24 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setFestivals(data.data);
+
+        // URL에 festivalId가 전달된 경우 해당 축제 자동 선택
+        if (initialFestivalId) {
+          const target = data.data.find((f: Festival) => f.id === initialFestivalId);
+          if (target) {
+            setSelectedFestival(target);
+          } else {
+            // 목록 필터에 포함되지 않았더라도 단독 API로 가져와 선택
+            fetch(`/api/festivals/${initialFestivalId}`)
+              .then(r => r.json())
+              .then(single => {
+                if (single.success && single.data) {
+                  setSelectedFestival(single.data);
+                }
+              })
+              .catch(() => {});
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to load festivals', error);
@@ -94,5 +116,13 @@ export default function Home() {
         />
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="h-screen w-screen bg-[#f8fafc]" />}>
+      <HomeContent />
+    </Suspense>
   );
 }
