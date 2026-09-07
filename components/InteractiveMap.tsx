@@ -473,6 +473,23 @@ export default function InteractiveMap({
               )}
             </div>
 
+            {/* 지역 선택 칩 */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+              {regions.map((region) => (
+                <button
+                  key={region}
+                  onClick={() => setSelectedRegion(region)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap transition ${
+                    selectedRegion === region
+                      ? 'bg-blue-50 text-[#0A2540] font-bold border border-blue-200'
+                      : 'text-gray-500 hover:text-gray-900 bg-slate-50'
+                  }`}
+                >
+                  {region}
+                </button>
+              ))}
+            </div>
+
             {/* 퀵 기간 칩 */}
             <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
               {periodTabs.map((tab) => (

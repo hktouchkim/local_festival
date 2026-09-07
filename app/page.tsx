@@ -72,17 +72,15 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchFestivals();
-  }, [selectedRegion, selectedPeriod, showOngoing, showUpcoming]);
-
-  useEffect(() => {
     fetchCuration();
   }, []);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchFestivals();
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchFestivals();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedRegion, selectedPeriod, showOngoing, showUpcoming]);
 
   // 큐레이션 카드에서 '지도에서 보기' 클릭 시 상단 지도로 스무스 스크롤 및 마커 선택
   const handleSelectOnMap = (fest: Festival) => {
@@ -97,99 +95,10 @@ export default function Home() {
       <Header />
 
       {/* ========================================================= */}
-      {/* 1. 상단 필터 바 + 하단 지도 영역 2단 분리형 (B안)          */}
+      {/* 1. 전면 와이드 지도 영역 (내부 플로팅 검색/필터 모듈 탑재)   */}
       {/* ========================================================= */}
-      {/* 1-1. 상단 독립 검색 및 필터 컨트롤 바 */}
-      <section className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            {/* 검색창 */}
-            <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="축제명을 입력해주세요"
-                className="w-full pl-9 pr-16 py-2 bg-slate-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A2540] focus:bg-white"
-              />
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-              <button
-                type="submit"
-                className="absolute right-1.5 top-1.5 px-3 py-1 bg-[#0A2540] text-white text-xs font-semibold rounded hover:bg-slate-800 transition"
-              >
-                검색
-              </button>
-            </form>
-
-            {/* 상태 체크박스 & 기간 빠른 선택 탭 */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* 진행중 / 예정 체크박스 (하단 배치 연동) */}
-              <div className="flex items-center gap-2.5 bg-slate-50 border border-gray-200 px-3 py-1.5 rounded-lg text-xs">
-                <label className="flex items-center gap-1.5 cursor-pointer select-none font-semibold text-gray-700 hover:text-black">
-                  <input
-                    type="checkbox"
-                    checked={showOngoing}
-                    onChange={(e) => setShowOngoing(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-[#0A2540] border-gray-300 focus:ring-0 accent-[#0A2540]"
-                  />
-                  <span>진행 중인 축제</span>
-                </label>
-
-                <span className="text-gray-300">|</span>
-
-                <label className="flex items-center gap-1.5 cursor-pointer select-none font-semibold text-gray-700 hover:text-black">
-                  <input
-                    type="checkbox"
-                    checked={showUpcoming}
-                    onChange={(e) => setShowUpcoming(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-[#0A2540] border-gray-300 focus:ring-0 accent-[#0A2540]"
-                  />
-                  <span>진행 예정</span>
-                </label>
-              </div>
-
-              {/* 시점 선택 탭 */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-                {PERIOD_TABS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setSelectedPeriod(tab.key)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${
-                      selectedPeriod === tab.key
-                        ? 'bg-[#0A2540] text-white shadow-xs'
-                        : 'bg-slate-100 text-gray-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* 지역 선택 바 */}
-          <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-gray-100 overflow-x-auto pb-1">
-            <span className="text-xs text-gray-400 flex-shrink-0 font-medium">지역:</span>
-            {REGIONS.map((region) => (
-              <button
-                key={region}
-                onClick={() => setSelectedRegion(region)}
-                className={`text-xs px-2.5 py-1 rounded transition whitespace-nowrap ${
-                  selectedRegion === region
-                    ? 'font-bold text-[#0A2540] bg-blue-50 border border-blue-200'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                {region}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 1-2. 하단 시원한 전면 와이드 지도 영역 */}
       <section ref={mapSectionRef} className="relative w-full bg-slate-100 border-b border-gray-200">
-        <div className="w-full h-[480px] md:h-[580px] relative">
+        <div className="w-full h-[520px] md:h-[620px] relative">
           <InteractiveMap
             festivals={festivals}
             selectedFestival={selectedFestival}
