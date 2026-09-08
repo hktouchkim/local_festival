@@ -76,7 +76,7 @@ export default function FestivalDetailPanel({
   };
 
   return (
-    <div className="w-[410px] max-w-[calc(100vw-450px)] bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200/90 shadow-2xl flex flex-col overflow-hidden h-full animate-fade-in relative z-30">
+    <div className="w-full md:w-[410px] md:max-w-[calc(100vw-450px)] max-h-[85vh] md:max-h-full bg-white/95 backdrop-blur-md rounded-t-2xl md:rounded-2xl border border-gray-200/90 shadow-2xl flex flex-col overflow-hidden h-full animate-fade-in relative z-30">
       {/* 1. 상단 바: 타이틀 및 닫기 버튼 */}
       <div className="p-3.5 border-b border-gray-100 bg-white/95 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-1.5 min-w-0 pr-2">

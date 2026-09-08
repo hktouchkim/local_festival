@@ -594,17 +594,17 @@ export default function InteractiveMap({
     );
   };
 
-  // 모바일 전용 전체화면 팝업 오버레이 상태
-  const [isMobileOverlayOpen, setIsMobileOverlayOpen] = useState(false);
+  // 모바일 전용 바텀시트 확장 상태 ('collapsed': 미니 1장, 'expanded': 화면 반/전체 목록)
+  const [mobileSheetMode, setMobileSheetMode] = useState<'collapsed' | 'expanded'>('collapsed');
 
   return (
     <div className="w-full h-full relative overflow-hidden flex flex-col">
-      {/* 내 위치 중심 이동 플로팅 버튼 (우측 하단으로 이동) */}
-      <div className="absolute bottom-6 right-6 z-20 hidden sm:block">
+      {/* 내 위치 중심 이동 플로팅 버튼 (PC: 우측 하단, 모바일: 바텀시트 바로 위 우측) */}
+      <div className="absolute bottom-28 md:bottom-6 right-4 md:right-6 z-20">
         <button
           onClick={handleFindMyLocation}
           disabled={isLocating}
-          className="bg-white hover:bg-slate-50 text-gray-800 px-4 py-2.5 rounded-xl border border-gray-300 shadow-xl text-xs font-bold flex items-center gap-2 transition active:scale-95 disabled:opacity-50"
+          className="bg-white/95 backdrop-blur-md hover:bg-slate-50 text-gray-800 p-2.5 md:px-4 md:py-2.5 rounded-xl border border-gray-300 shadow-xl text-xs font-bold flex items-center gap-2 transition active:scale-95 disabled:opacity-50"
           title="내 주변 축제 찾기"
         >
           {isLocating ? (
@@ -612,7 +612,7 @@ export default function InteractiveMap({
           ) : (
             <Locate className="w-4 h-4 text-blue-600" />
           )}
-          <span>{isLocating ? '위치 찾는 중...' : '내 위치'}</span>
+          <span className="hidden sm:inline">{isLocating ? '위치 찾는 중...' : '내 위치'}</span>
         </button>
 
         {locationError && (
@@ -622,28 +622,75 @@ export default function InteractiveMap({
         )}
       </div>
 
-      {/* 모바일 전용: 상단 검색/목록 보기 플로팅 버튼 */}
-      <div className="absolute top-3 left-3 right-3 z-20 md:hidden flex items-center gap-2">
-        <button
-          onClick={() => setIsMobileOverlayOpen(true)}
-          className="flex-1 bg-white/95 backdrop-blur-md border-2 border-[#0A2540] shadow-lg rounded-xl px-3.5 py-2.5 flex items-center justify-between text-left transition active:scale-98"
-        >
-          <div className="flex items-center gap-2 text-xs font-semibold text-gray-800 truncate">
-            <Search className="w-4 h-4 text-[#0A2540] flex-shrink-0" />
-            <span className="truncate">{searchQuery || '축제명 또는 주소를 입력하세요.'}</span>
+      {/* ========================================================= */}
+      {/* 1. 모바일 전용: 상단 검색바 + 1단 슬림 배너 (A안) */}
+      {/* ========================================================= */}
+      <div className="absolute top-2 left-2 right-2 z-20 md:hidden space-y-1.5 pointer-events-auto">
+        {/* 상단 검색바 */}
+        <div className="relative flex items-center shadow-md rounded-xl overflow-hidden bg-white/95 backdrop-blur-md border border-gray-200">
+          <Search className="w-4 h-4 text-[#0A2540] ml-3 flex-shrink-0" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="축제명 또는 주소를 입력하세요."
+            className="w-full pl-2.5 pr-8 py-2 text-xs font-medium text-gray-900 placeholder:text-gray-400 bg-transparent focus:outline-none"
+          />
+          {searchQuery ? (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-1"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <span className="absolute right-2.5 bg-blue-50 text-[#0A2540] text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-blue-200">
+              {visibleFestivals.length}개
+            </span>
+          )}
+        </div>
+
+        {/* 모바일 상단 1단 슬림 배너 (스와이프 및 도트 지원) */}
+        <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow-md border border-gray-100">
+          <div
+            className="relative touch-pan-y"
+            onTouchStart={(e) => {
+              touchStartXRef.current = e.touches[0].clientX;
+            }}
+            onTouchEnd={(e) => {
+              if (touchStartXRef.current === null) return;
+              const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+              if (diff > 35) handleNextBanner();
+              else if (diff < -35) handlePrevBanner();
+              touchStartXRef.current = null;
+            }}
+          >
+            {THEME_BANNERS.map((item, idx) => {
+              if (activeBannerIdx !== idx) return null;
+              const isSelected = selectedTheme === item.key;
+              return (
+                <div
+                  key={item.key}
+                  onClick={() => handleThemeBannerClick(item.key, item.title)}
+                  className={`w-full py-1.5 px-2.5 rounded-lg cursor-pointer flex items-center justify-between text-left select-none transition ${
+                    item.bg
+                  } ${isSelected ? 'ring-2 ring-blue-400' : ''}`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base">{item.icon}</span>
+                    <span className="font-bold text-[11px] truncate">{item.title}</span>
+                    <span className={`text-[8px] font-bold px-1 rounded ${item.badgeBg}`}>
+                      {item.badge}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-white/80 whitespace-nowrap pl-1">
+                    {activeBannerIdx + 1}/{THEME_BANNERS.length}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-          <span className="bg-[#0A2540] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
-            {visibleFestivals.length}개
-          </span>
-        </button>
-        <button
-          onClick={handleFindMyLocation}
-          disabled={isLocating}
-          className="bg-white/95 backdrop-blur-md border border-gray-200 shadow-lg rounded-xl p-2.5 text-blue-600 active:scale-95"
-          title="내 위치"
-        >
-          <Locate className="w-4 h-4" />
-        </button>
+        </div>
       </div>
 
       {/* ========================================================= */}
@@ -995,6 +1042,192 @@ export default function InteractiveMap({
             <p className="font-bold mb-1">카카오 지도 로드 실패</p>
             <p>{errorMsg}</p>
           </div>
+        </div>
+      )}
+      {/* ========================================================= */}
+      {/* 3. 모바일 전용: 하단 서랍형(바텀시트) 축제 목록 & 요약 카드 (A안) */}
+      {/* ========================================================= */}
+      <div
+        className={`md:hidden fixed left-0 right-0 bottom-0 z-30 bg-white/98 backdrop-blur-md rounded-t-2xl shadow-2xl border-t border-gray-200 transition-all duration-300 flex flex-col ${
+          mobileSheetMode === 'expanded' ? 'h-[75vh]' : 'h-24'
+        }`}
+      >
+        {/* 상단 서랍 손잡이 핸들바 (터치/클릭 시 축소/확장 토글) */}
+        <div
+          onClick={() => setMobileSheetMode(mobileSheetMode === 'collapsed' ? 'expanded' : 'collapsed')}
+          className="pt-2.5 pb-1 px-4 flex flex-col items-center justify-center cursor-pointer select-none"
+        >
+          <div className="w-10 h-1 bg-gray-300 rounded-full mb-1.5" />
+          <div className="w-full flex items-center justify-between text-xs font-bold text-gray-800">
+            <span className="flex items-center gap-1.5">
+              <span>축제 목록</span>
+              <span className="bg-blue-50 text-[#0A2540] text-[10px] px-1.5 py-0.2 rounded font-extrabold border border-blue-200">
+                {visibleFestivals.length}
+              </span>
+            </span>
+            <span className="text-[11px] text-blue-600 font-semibold flex items-center gap-0.5">
+              {mobileSheetMode === 'collapsed' ? '전체보기 ↑' : '지도보기 ↓'}
+            </span>
+          </div>
+        </div>
+
+        {/* 1) 축소(collapsed) 모드: 1번째 축제 가로 미니 카드 1개 노출 */}
+        {mobileSheetMode === 'collapsed' && visibleFestivals.length > 0 && (
+          <div
+            onClick={() => onSelectFestival(visibleFestivals[0])}
+            className="px-3 pb-2 flex items-center gap-2.5 cursor-pointer"
+          >
+            <div className="w-12 h-12 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100">
+              {(visibleFestivals[0].firstimage || (visibleFestivals[0] as any).first_image) ? (
+                <img
+                  src={visibleFestivals[0].firstimage || (visibleFestivals[0] as any).first_image}
+                  alt={visibleFestivals[0].title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300 text-[9px]">
+                  No Img
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-bold text-xs text-gray-900 truncate">
+                {visibleFestivals[0].title}
+              </h4>
+              <p className="text-[11px] text-gray-500 truncate">
+                {visibleFestivals[0].addr1 || '상세 주소 없음'}
+              </p>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectFestival(visibleFestivals[0]);
+              }}
+              className="px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-lg border border-blue-200"
+            >
+              상세
+            </button>
+          </div>
+        )}
+
+        {/* 2) 확장(expanded) 모드: 필터 칩 + 세로 스크롤 축제 목록 전체 노출 */}
+        {mobileSheetMode === 'expanded' && (
+          <div className="flex-1 overflow-y-auto px-3.5 pb-4 space-y-2.5">
+            {/* 기간 칩 */}
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none border-b border-gray-100">
+              {periodTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setSelectedPeriod(tab.key)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition ${
+                    selectedPeriod === tab.key
+                      ? 'bg-blue-50 text-[#0A2540] border border-blue-200 font-bold'
+                      : 'bg-slate-100 text-gray-500'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 상태 체크박스 */}
+            <div className="flex items-center gap-3 text-[11px] py-1 text-gray-700">
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={showOngoing}
+                  onChange={(e) => setShowOngoing(e.target.checked)}
+                  className="rounded text-emerald-600 w-3.5 h-3.5"
+                />
+                진행 중
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={showUpcoming}
+                  onChange={(e) => setShowUpcoming(e.target.checked)}
+                  className="rounded text-[#e83428] w-3.5 h-3.5"
+                />
+                진행 예정
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={showEnded}
+                  onChange={(e) => setShowEnded(e.target.checked)}
+                  className="rounded text-gray-500 w-3.5 h-3.5"
+                />
+                종료 (1년)
+              </label>
+            </div>
+
+            {/* 축제 목록 피드 */}
+            <div className="space-y-2 pt-1">
+              {visibleFestivals.map((fest) => {
+                let badgeText = '진행 예정';
+                let badgeColor = 'bg-[#e83428] text-white';
+
+                if (fest.start_date <= TODAY_STR && fest.end_date >= TODAY_STR) {
+                  badgeText = '진행 중';
+                  badgeColor = 'bg-emerald-600 text-white';
+                } else if (fest.start_date > TODAY_STR) {
+                  badgeText = '예정';
+                  badgeColor = 'bg-[#e83428] text-white';
+                } else if (fest.end_date < TODAY_STR) {
+                  badgeText = '종료';
+                  badgeColor = 'bg-slate-500 text-white';
+                }
+
+                return (
+                  <div
+                    key={fest.id}
+                    onClick={() => onSelectFestival(fest)}
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white flex gap-2.5 items-center cursor-pointer active:bg-slate-50"
+                  >
+                    <div className="w-14 h-14 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100">
+                      {(fest.firstimage || (fest as any).first_image) ? (
+                        <img
+                          src={fest.firstimage || (fest as any).first_image}
+                          alt={fest.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300 text-[9px]">
+                          No Img
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${badgeColor}`}>
+                          {badgeText}
+                        </span>
+                        <h4 className="font-bold text-xs text-gray-900 truncate">
+                          {fest.title}
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-gray-500 truncate">
+                        {fest.addr1 || '상세 주소 없음'}
+                      </p>
+                      <p className="text-[10px] text-gray-400">
+                        {fest.start_date} ~ {fest.end_date}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 모바일 전용: 선택 축제 상세 바텀시트 모달 */}
+      {selectedFestival && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-xs flex flex-col justify-end">
+          <FestivalDetailPanel
+            festival={selectedFestival}
+            onClose={() => onSelectFestival(null)}
+          />
         </div>
       )}
     </div>
