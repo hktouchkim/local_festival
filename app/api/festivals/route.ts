@@ -18,17 +18,26 @@ export async function GET(request: Request) {
   }
 
   // 2. 검색어 필터 (축제명 또는 주소, 또는 추천 테마 키워드 지원)
+  // 2. 검색어 필터 (축제명 또는 주소, 또는 추천 테마 키워드 지원)
   if (query) {
-    if (query.includes('hot') || query.includes('인기') || query.includes('hot 10')) {
-      list = list.filter(f => {
-        const isOngoingRecent = f.start_date <= todayStr && f.end_date >= todayStr && f.start_date >= '2026-08-15';
-        const isUpcomingNear = f.start_date > todayStr;
-        return isOngoingRecent || isUpcomingNear;
-      });
-    } else if (query.includes('뮤직') || query.includes('페스티벌')) {
+    const qLower = query.toLowerCase();
+    if (qLower.includes('pick') || qLower.includes('한경') || qLower.includes('트래블') || qLower.includes('hot')) {
+      // 한경 트래블 PICK 검색 키워드 매핑
+      const withContent = list.filter(f => 
+        f.overview && f.overview.trim().length > 0 &&
+        f.program && f.program.trim().length > 0
+      );
+      const ongoing = withContent.filter(f => f.start_date <= todayStr && f.end_date >= todayStr);
+      const upcoming = withContent
+        .filter(f => f.start_date > todayStr)
+        .sort((a, b) => a.start_date.localeCompare(b.start_date))
+        .slice(0, 5);
+      const pickIds = new Set([...ongoing.map(f => f.id), ...upcoming.map(f => f.id)]);
+      list = list.filter(f => pickIds.has(f.id));
+    } else if (qLower.includes('뮤직') || qLower.includes('페스티벌')) {
       const regex = /뮤직|락|재즈|콘서트|페스티벌|음악|버스킹|비어|맥주/i;
       list = list.filter(f => regex.test(f.title) || (f.overview && regex.test(f.overview)));
-    } else if (query.includes('야간') || query.includes('빛')) {
+    } else if (qLower.includes('야간') || qLower.includes('빛')) {
       const regex = /야간|빛|불꽃|달빛|밤|나이트|드론/i;
       list = list.filter(f => regex.test(f.title) || (f.overview && regex.test(f.overview)));
     } else {
@@ -75,12 +84,18 @@ export async function GET(request: Request) {
   const theme = searchParams.get('theme');
   if (theme) {
     if (theme === 'HOT') {
-      // 진행중 최근 개막 또는 진행 예정 임박
-      list = list.filter(f => {
-        const isOngoingRecent = f.start_date <= todayStr && f.end_date >= todayStr && f.start_date >= '2026-08-15';
-        const isUpcomingNear = f.start_date > todayStr;
-        return isOngoingRecent || isUpcomingNear;
-      });
+      // 한경 트래블 PICK: 축제소개글(overview)과 주요 행사 프로그램(program)에 값이 있는 행사 중 진행중 전체 + 곧 오픈할 예정 최대 5개
+      const withContent = list.filter(f => 
+        f.overview && f.overview.trim().length > 0 &&
+        f.program && f.program.trim().length > 0
+      );
+      const ongoing = withContent.filter(f => f.start_date <= todayStr && f.end_date >= todayStr);
+      const upcoming = withContent
+        .filter(f => f.start_date > todayStr)
+        .sort((a, b) => a.start_date.localeCompare(b.start_date))
+        .slice(0, 5);
+      const pickIds = new Set([...ongoing.map(f => f.id), ...upcoming.map(f => f.id)]);
+      list = list.filter(f => pickIds.has(f.id));
     } else if (theme === 'MUSIC') {
       const regex = /뮤직|락|재즈|콘서트|페스티벌|음악|버스킹|비어|맥주/i;
       list = list.filter(f => regex.test(f.title) || (f.overview && regex.test(f.overview)));

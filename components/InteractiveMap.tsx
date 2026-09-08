@@ -117,12 +117,12 @@ export default function InteractiveMap({
   const THEME_BANNERS = [
     {
       key: 'HOT',
-      title: 'HOT 10 축제',
-      desc: '지금 가장 주목받는 전국 인기 축제 모음',
-      badge: 'HOT PICK',
-      icon: '🔥',
-      bg: 'bg-gradient-to-r from-orange-600 via-amber-600 to-amber-700 text-white',
-      badgeBg: 'bg-black/25 text-amber-200 border border-white/20'
+      title: '한경 트래블 PICK',
+      desc: '행사 정보가 풍성한 엄선 추천 축제 컬렉션',
+      badge: 'TRAVEL PICK',
+      icon: '✨',
+      bg: 'bg-gradient-to-r from-blue-700 via-indigo-700 to-[#0A2540] text-white',
+      badgeBg: 'bg-black/25 text-amber-300 border border-white/20'
     },
     {
       key: 'MUSIC',
@@ -819,74 +819,68 @@ export default function InteractiveMap({
                 </span>
               </div>
 
-              {/* 5. 진행중, 예정, 종료 -> 라디오 버튼 (단일 선택) */}
+              {/* 5. 진행중, 예정, 종료 -> 체크박스 형태 (중복 선택 가능) */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowOngoing(true);
-                    setShowUpcoming(false);
-                    setShowEnded(false);
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+                  onClick={() => setShowOngoing(!showOngoing)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                     showOngoing
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-400 ring-2 ring-emerald-200/50 shadow-xs'
-                      : 'bg-slate-100 text-gray-400 border-transparent hover:bg-slate-200/70'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-xs'
+                      : 'bg-white text-gray-400 border-gray-200 hover:bg-slate-50'
                   }`}
                 >
-                  <span
-                    className={`w-2 h-2 rounded-full border ${
+                  <div
+                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
                       showOngoing
-                        ? 'bg-emerald-500 border-white ring-1 ring-emerald-500'
-                        : 'bg-gray-300 border-transparent'
+                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                        : 'bg-white border-gray-300'
                     }`}
-                  />
+                  >
+                    {showOngoing && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                  </div>
                   <span>진행중</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowOngoing(false);
-                    setShowUpcoming(true);
-                    setShowEnded(false);
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+                  onClick={() => setShowUpcoming(!showUpcoming)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                     showUpcoming
-                      ? 'bg-rose-50 text-[#e83428] border-rose-400 ring-2 ring-rose-200/50 shadow-xs'
-                      : 'bg-slate-100 text-gray-400 border-transparent hover:bg-slate-200/70'
+                      ? 'bg-rose-50 text-[#e83428] border-rose-300 shadow-xs'
+                      : 'bg-white text-gray-400 border-gray-200 hover:bg-slate-50'
                   }`}
                 >
-                  <span
-                    className={`w-2 h-2 rounded-full border ${
+                  <div
+                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
                       showUpcoming
-                        ? 'bg-[#e83428] border-white ring-1 ring-[#e83428]'
-                        : 'bg-gray-300 border-transparent'
+                        ? 'bg-[#e83428] border-[#e83428] text-white'
+                        : 'bg-white border-gray-300'
                     }`}
-                  />
+                  >
+                    {showUpcoming && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                  </div>
                   <span>예정</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowOngoing(false);
-                    setShowUpcoming(false);
-                    setShowEnded(true);
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+                  onClick={() => setShowEnded(!showEnded)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                     showEnded
-                      ? 'bg-slate-200 text-gray-800 border-slate-400 ring-2 ring-slate-300/60 shadow-xs'
-                      : 'bg-slate-100 text-gray-400 border-transparent hover:bg-slate-200/70'
+                      ? 'bg-slate-100 text-gray-800 border-slate-300 shadow-xs'
+                      : 'bg-white text-gray-400 border-gray-200 hover:bg-slate-50'
                   }`}
                 >
-                  <span
-                    className={`w-2 h-2 rounded-full border ${
+                  <div
+                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
                       showEnded
-                        ? 'bg-gray-700 border-white ring-1 ring-gray-700'
-                        : 'bg-gray-300 border-transparent'
+                        ? 'bg-gray-700 border-gray-700 text-white'
+                        : 'bg-white border-gray-300'
                     }`}
-                  />
+                  >
+                    {showEnded && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                  </div>
                   <span>종료</span>
                 </button>
               </div>
@@ -1140,74 +1134,68 @@ export default function InteractiveMap({
             </span>
           </div>
 
-          {/* 5. 진행중, 예정, 종료 -> 라디오 버튼 (단일 선택) */}
+          {/* 5. 진행중, 예정, 종료 -> 체크박스 형태 (중복 선택 가능) */}
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => {
-                setShowOngoing(true);
-                setShowUpcoming(false);
-                setShowEnded(false);
-              }}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+              onClick={() => setShowOngoing(!showOngoing)}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                 showOngoing
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-400 ring-2 ring-emerald-200/50 shadow-xs'
-                  : 'bg-slate-100 text-gray-400 border-transparent'
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-xs'
+                  : 'bg-white text-gray-400 border-gray-200'
               }`}
             >
-              <span
-                className={`w-2 h-2 rounded-full border ${
+              <div
+                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
                   showOngoing
-                    ? 'bg-emerald-500 border-white ring-1 ring-emerald-500'
-                    : 'bg-gray-300 border-transparent'
+                    ? 'bg-emerald-600 border-emerald-600 text-white'
+                    : 'bg-white border-gray-300'
                 }`}
-              />
+              >
+                {showOngoing && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+              </div>
               <span>진행중</span>
             </button>
 
             <button
               type="button"
-              onClick={() => {
-                setShowOngoing(false);
-                setShowUpcoming(true);
-                setShowEnded(false);
-              }}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+              onClick={() => setShowUpcoming(!showUpcoming)}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                 showUpcoming
-                  ? 'bg-rose-50 text-[#e83428] border-rose-400 ring-2 ring-rose-200/50 shadow-xs'
-                  : 'bg-slate-100 text-gray-400 border-transparent'
+                  ? 'bg-rose-50 text-[#e83428] border-rose-300 shadow-xs'
+                  : 'bg-white text-gray-400 border-gray-200'
               }`}
             >
-              <span
-                className={`w-2 h-2 rounded-full border ${
+              <div
+                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
                   showUpcoming
-                    ? 'bg-[#e83428] border-white ring-1 ring-[#e83428]'
-                    : 'bg-gray-300 border-transparent'
+                    ? 'bg-[#e83428] border-[#e83428] text-white'
+                    : 'bg-white border-gray-300'
                 }`}
-              />
+              >
+                {showUpcoming && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+              </div>
               <span>예정</span>
             </button>
 
             <button
               type="button"
-              onClick={() => {
-                setShowOngoing(false);
-                setShowUpcoming(false);
-                setShowEnded(true);
-              }}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+              onClick={() => setShowEnded(!showEnded)}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                 showEnded
-                  ? 'bg-slate-200 text-gray-800 border-slate-400 ring-2 ring-slate-300/60 shadow-xs'
-                  : 'bg-slate-100 text-gray-400 border-transparent'
+                  ? 'bg-slate-100 text-gray-800 border-slate-300 shadow-xs'
+                  : 'bg-white text-gray-400 border-gray-200'
               }`}
             >
-              <span
-                className={`w-2 h-2 rounded-full border ${
+              <div
+                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
                   showEnded
-                    ? 'bg-gray-700 border-white ring-1 ring-gray-700'
-                    : 'bg-gray-300 border-transparent'
+                    ? 'bg-gray-700 border-gray-700 text-white'
+                    : 'bg-white border-gray-300'
                 }`}
-              />
+              >
+                {showEnded && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+              </div>
               <span>종료</span>
             </button>
           </div>
