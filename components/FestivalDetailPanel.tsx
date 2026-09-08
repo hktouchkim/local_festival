@@ -111,16 +111,16 @@ export default function FestivalDetailPanel({
 
       {/* 2. 패널 본문 (전체 세로 스크롤) */}
       <div className="flex-1 overflow-y-auto p-3.5 space-y-4 scrollbar-thin scrollbar-thumb-gray-200 text-xs">
-        {/* 대표 이미지 포스터 */}
-        <div className="w-full h-44 rounded-xl overflow-hidden bg-slate-100 relative border border-gray-100 shadow-2xs">
+        {/* 대표 이미지 포스터 (잘림 없이 원본 비율 온전히 노출: object-contain) */}
+        <div className="w-full max-h-64 min-h-48 rounded-xl overflow-hidden bg-slate-900/95 relative border border-gray-100 shadow-xs flex items-center justify-center">
           {festival.firstimage ? (
             <img
               src={festival.firstimage}
               alt={festival.title}
-              className="w-full h-full object-cover"
+              className="w-full h-auto max-h-64 object-contain"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs bg-slate-100">
+            <div className="w-full h-44 flex items-center justify-center text-gray-400 text-xs bg-slate-100">
               대표 이미지가 준비 중입니다.
             </div>
           )}

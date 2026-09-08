@@ -47,25 +47,30 @@ export default function FestivalGallery({ images, festivalTitle }: FestivalGalle
         <span className="text-xs text-gray-400">클릭 시 고화질 확대</span>
       </div>
 
-      {/* 포토 그리드 (2~4열 반응형 그리드) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {/* 세로 펼침형 갤러리 (아래로 쫙 펼쳐져 자연스럽게 스크롤 감상) */}
+      <div className="space-y-3">
         {images.map((img, idx) => (
           <div
             key={idx}
             onClick={() => openLightbox(idx)}
-            className="group relative h-28 sm:h-36 rounded-lg overflow-hidden bg-slate-100 cursor-pointer border border-gray-100 hover:border-gray-400 transition shadow-xs hover:shadow-md"
+            className="group relative rounded-xl overflow-hidden bg-slate-100 cursor-pointer border border-gray-200/80 hover:border-gray-400 transition shadow-xs hover:shadow-md"
           >
             <img
-              src={img.smallimageurl || img.originimgurl}
+              src={img.originimgurl || img.smallimageurl}
               alt={img.imgname || `${festivalTitle} 현장 사진 ${idx + 1}`}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              className="w-full h-auto max-h-72 object-contain bg-slate-900/90 group-hover:scale-[1.01] transition-transform duration-300"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <span className="p-1.5 bg-black/60 rounded-full text-white backdrop-blur-xs">
-                <Maximize2 className="w-4 h-4" />
-              </span>
-            </div>
+            {img.imgname && (
+              <div className="p-2 bg-white border-t border-gray-100 flex items-center justify-between">
+                <span className="text-[11px] font-medium text-gray-700 truncate">
+                  {img.imgname.replace(/\.[^/.]+$/, '')}
+                </span>
+                <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                  <Maximize2 className="w-3 h-3" /> 확대
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>
