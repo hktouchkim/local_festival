@@ -22,16 +22,13 @@ export async function GET(request: Request) {
   if (query) {
     const qLower = query.toLowerCase();
     if (qLower.includes('pick') || qLower.includes('한경') || qLower.includes('트래블') || qLower.includes('hot')) {
-      // 한경 트래블 PICK 검색 키워드 매핑
+      // 한경 트래블 PICK: 축제 소개 또는 주요 행사 프로그램에 데이터가 있는 축제 중 진행중 전체 + 진행예정
       const withContent = list.filter(f => 
-        f.overview && f.overview.trim().length > 0 &&
-        f.program && f.program.trim().length > 0
+        (f.overview && f.overview.trim().length > 0) ||
+        (f.program && f.program.trim().length > 0)
       );
       const ongoing = withContent.filter(f => f.start_date <= todayStr && f.end_date >= todayStr);
-      const upcoming = withContent
-        .filter(f => f.start_date > todayStr)
-        .sort((a, b) => a.start_date.localeCompare(b.start_date))
-        .slice(0, 5);
+      const upcoming = withContent.filter(f => f.start_date > todayStr);
       const pickIds = new Set([...ongoing.map(f => f.id), ...upcoming.map(f => f.id)]);
       list = list.filter(f => pickIds.has(f.id));
     } else if (qLower.includes('뮤직') || qLower.includes('페스티벌')) {
@@ -83,16 +80,13 @@ export async function GET(request: Request) {
   const theme = searchParams.get('theme');
   if (theme) {
     if (theme === 'HOT') {
-      // 한경 트래블 PICK: 축제소개글(overview)과 주요 행사 프로그램(program)에 값이 있는 행사 중 진행중 전체 + 곧 오픈할 예정 최대 5개
+      // 한경 트래블 PICK: 축제 소개 또는 주요 행사 프로그램에 데이터가 있는 축제 중 진행중 전체 + 진행예정
       const withContent = list.filter(f => 
-        f.overview && f.overview.trim().length > 0 &&
-        f.program && f.program.trim().length > 0
+        (f.overview && f.overview.trim().length > 0) ||
+        (f.program && f.program.trim().length > 0)
       );
       const ongoing = withContent.filter(f => f.start_date <= todayStr && f.end_date >= todayStr);
-      const upcoming = withContent
-        .filter(f => f.start_date > todayStr)
-        .sort((a, b) => a.start_date.localeCompare(b.start_date))
-        .slice(0, 5);
+      const upcoming = withContent.filter(f => f.start_date > todayStr);
       const pickIds = new Set([...ongoing.map(f => f.id), ...upcoming.map(f => f.id)]);
       list = list.filter(f => pickIds.has(f.id));
     } else if (theme === 'MUSIC') {

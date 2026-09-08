@@ -160,6 +160,12 @@ export default function InteractiveMap({
     // 검색어 입력란에 해당 배너명을 주입하여 사용자가 검색결과를 직관적으로 파악하도록 연동
     if (nextTheme && bannerTitle) {
       setSearchQuery(bannerTitle);
+      if (themeKey === 'HOT') {
+        // 한경 트래블 PICK: 진행중, 예정에 모두 체크 활성화, 종료는 비활성화
+        setShowOngoing(true);
+        setShowUpcoming(true);
+        setShowEnded(false);
+      }
     } else {
       setSearchQuery('');
     }
