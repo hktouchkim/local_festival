@@ -81,39 +81,50 @@ export default function FestivalDetailPanel({
 
   // 모바일 상세 시트 스와이프 추적 Ref
   const detailTouchStartYRef = useRef<number | null>(null);
+  const detailScrollRef = useRef<HTMLDivElement | null>(null);
 
   const handleDetailTouchStart = (e: React.TouchEvent) => {
     detailTouchStartYRef.current = e.touches[0].clientY;
   };
 
-  const handleDetailTouchEnd = (e: React.TouchEvent) => {
-    if (detailTouchStartYRef.current === null || !onToggleMobileMode) return;
-    const diffY = detailTouchStartYRef.current - e.changedTouches[0].clientY;
-    // 위로 35px 이상 쓸어올렸을 때 -> 풀스크린(full) 확장
-    if (diffY > 35 && mobileMode === 'half') {
-      onToggleMobileMode();
+  const handleDetailTouchMove = (e: React.TouchEvent) => {
+    // 상세 본문이 맨 위에 있고 아래로 당길 때 브라우저 새로고침 방지
+    if (detailTouchStartYRef.current !== null) {
+      const currentY = e.touches[0].clientY;
+      const diffY = currentY - detailTouchStartYRef.current;
+      if (diffY > 10 && detailScrollRef.current && detailScrollRef.current.scrollTop <= 0) {
+        if (e.cancelable) e.preventDefault();
+      }
     }
-    // 아래로 35px 이상 내렸을 때 -> 하프(half) 축소 또는 닫기
-    else if (diffY < -35 && mobileMode === 'full') {
-      onToggleMobileMode();
+  };
+
+  const handleDetailTouchEnd = (e: React.TouchEvent) => {
+    if (detailTouchStartYRef.current === null) return;
+    const diffY = detailTouchStartYRef.current - e.changedTouches[0].clientY;
+    // 아래로 40px 이상 쓸어내렸을 때 -> 닫기 (검색시트 복귀)
+    // 단, 스크롤이 맨 위에 있을 때만 닫기 동작
+    if (diffY < -40) {
+      if (!detailScrollRef.current || detailScrollRef.current.scrollTop <= 5) {
+        onClose();
+      }
     }
     detailTouchStartYRef.current = null;
   };
 
   return (
     <div
-      onTouchStart={handleDetailTouchStart}
-      onTouchEnd={handleDetailTouchEnd}
-      className={`w-full md:w-[410px] md:max-w-[calc(100vw-450px)] bg-white rounded-t-3xl md:rounded-2xl border border-gray-200/90 shadow-2xl flex flex-col overflow-hidden animate-fade-in relative z-30 transition-all duration-300 ${
-        mobileMode === 'full' ? 'h-[92vh] md:h-full' : 'h-[60vh] md:h-full'
-      }`}
+      className="w-full md:w-[410px] md:max-w-[calc(100vw-450px)] bg-white rounded-t-3xl md:rounded-2xl border border-gray-200/90 shadow-2xl flex flex-col overflow-hidden animate-fade-in relative z-30 transition-all duration-300 h-[95vh] md:h-full"
     >
-      {/* 모바일 전용 상단 손잡이 바 (터치 시 60% <-> 92% 풀스크린 토글) */}
+      {/* 모바일 전용 상단 꼭지 버튼/손잡이 영역 (쓸어내리면 닫혀서 검색시트 복귀) */}
       <div
-        onClick={onToggleMobileMode}
-        className="md:hidden pt-3 pb-2 flex flex-col items-center justify-center cursor-pointer select-none bg-white touch-none"
+        onTouchStart={handleDetailTouchStart}
+        onTouchMove={handleDetailTouchMove}
+        onTouchEnd={handleDetailTouchEnd}
+        onClick={onClose}
+        className="md:hidden pt-3.5 pb-2.5 flex flex-col items-center justify-center cursor-pointer select-none bg-white border-b border-gray-100 flex-shrink-0 touch-none rounded-t-3xl"
       >
-        <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+        <div className="w-12 h-1.5 bg-gray-300 hover:bg-gray-400 rounded-full mb-1 transition" />
+        <span className="text-[10px] text-gray-400 font-semibold">내려서 닫기 ↓</span>
       </div>
 
       {/* 1. 상단 바: 타이틀 및 닫기 버튼 */}
@@ -150,7 +161,13 @@ export default function FestivalDetailPanel({
       </div>
 
       {/* 2. 패널 본문 (전체 세로 스크롤) */}
-      <div className="flex-1 overflow-y-auto p-3.5 space-y-4 scrollbar-thin scrollbar-thumb-gray-200 text-xs">
+      <div
+        ref={detailScrollRef}
+        onTouchStart={handleDetailTouchStart}
+        onTouchMove={handleDetailTouchMove}
+        onTouchEnd={handleDetailTouchEnd}
+        className="flex-1 overflow-y-auto overscroll-contain p-3.5 space-y-4 scrollbar-thin scrollbar-thumb-gray-200 text-xs"
+      >
         {/* 대표 이미지 포스터 (클릭 시 패널/화면 전체 확대 보기 지원) */}
         <div
           onClick={() => festival.firstimage && setShowPosterModal(true)}

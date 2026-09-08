@@ -599,42 +599,73 @@ export default function InteractiveMap({
   // 모바일 전용 상세 바텀시트 모드 ('half': 60% 높이, 'full': 92% 풀스크린) - B안
   const [mobileDetailMode, setMobileDetailMode] = useState<'half' | 'full'>('half');
 
-  // 모바일 바텀시트 제스처(스와이프/쓸어올리기/내리기) 터치 추적 Ref
-  const sheetTouchStartYRef = useRef<number | null>(null);
+  // 모바일 바텀시트 꼭지 버튼/손잡이 전용 터치 추적 Ref
+  const handleTouchStartYRef = useRef<number | null>(null);
+  // 콘텐츠 내부 스크롤 한계 도달 시 터치 추적 Ref
+  const contentTouchStartYRef = useRef<number | null>(null);
   const sheetContentRef = useRef<HTMLDivElement | null>(null);
 
-  // 모바일 바텀시트 핸들바 및 헤더 터치 제스처 핸들러
-  const handleSheetTouchStart = (e: React.TouchEvent) => {
-    sheetTouchStartYRef.current = e.touches[0].clientY;
+  // 1) 꼭지 버튼/손잡이 영역 터치 제스처: 잡고 쓸어올리거나 쓸어내리면 즉각 바텀시트 이동
+  const onHandleTouchStart = (e: React.TouchEvent) => {
+    handleTouchStartYRef.current = e.touches[0].clientY;
   };
 
-  const handleSheetTouchMove = (e: React.TouchEvent) => {
-    // 브라우저 기본 새로고침(Pull-to-refresh) 차단을 위해 expanded 상태에서 아래로 드래그 시 제어
-    if (sheetTouchStartYRef.current !== null && mobileSheetMode === 'expanded') {
-      const currentY = e.touches[0].clientY;
-      const diffY = currentY - sheetTouchStartYRef.current;
-      // 시트 스크롤이 맨 위에 있을 때 아래로 드래그하면 시트 축소 의도로 판정
-      if (diffY > 10 && sheetContentRef.current && sheetContentRef.current.scrollTop <= 0) {
-        if (e.cancelable) e.preventDefault();
-      }
-    }
+  const onHandleTouchMove = (e: React.TouchEvent) => {
+    if (e.cancelable) e.preventDefault(); // 기본 새로고침 및 브라우저 스크롤 완전 차단
   };
 
-  const handleSheetTouchEnd = (e: React.TouchEvent) => {
-    if (sheetTouchStartYRef.current === null) return;
-    const diffY = sheetTouchStartYRef.current - e.changedTouches[0].clientY;
-    // 위로 35px 이상 쓸어올렸을 때 -> 풀페이지 확장
-    if (diffY > 35) {
+  const onHandleTouchEnd = (e: React.TouchEvent) => {
+    if (handleTouchStartYRef.current === null) return;
+    const diffY = handleTouchStartYRef.current - e.changedTouches[0].clientY;
+    // 위로 30px 이상 쓸어올림 -> 풀페이지 확장
+    if (diffY > 30) {
       setMobileSheetMode('expanded');
     }
-    // 아래로 35px 이상 내렸을 때 -> 30%로 축소
-    else if (diffY < -35) {
-      // 본문이 맨 위에 있거나 핸들바를 드래그한 경우에만 축소
-      if (!sheetContentRef.current || sheetContentRef.current.scrollTop <= 5) {
+    // 아래로 30px 이상 쓸어내림 -> 30%로 축소
+    else if (diffY < -30) {
+      setMobileSheetMode('collapsed');
+    }
+    handleTouchStartYRef.current = null;
+  };
+
+  // 2) 콘텐츠 내부 터치 제스처: 내부 스크롤이 갈 곳이 없을 때만 바텀시트 동작
+  const onContentTouchStart = (e: React.TouchEvent) => {
+    contentTouchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const onContentTouchMove = (e: React.TouchEvent) => {
+    if (!contentTouchStartYRef.current || !sheetContentRef.current) return;
+    const currentY = e.touches[0].clientY;
+    const diffY = currentY - contentTouchStartYRef.current;
+    const { scrollTop, scrollHeight, clientHeight } = sheetContentRef.current;
+
+    // 맨 위에서 아래로 당길 때: 새로고침 방지
+    if (scrollTop <= 0 && diffY > 0) {
+      if (e.cancelable) e.preventDefault();
+    }
+    // 맨 아래에서 위로 당길 때: 오버스크롤 방지
+    if (scrollTop + clientHeight >= scrollHeight - 1 && diffY < 0) {
+      if (e.cancelable) e.preventDefault();
+    }
+  };
+
+  const onContentTouchEnd = (e: React.TouchEvent) => {
+    if (!contentTouchStartYRef.current || !sheetContentRef.current) return;
+    const diffY = contentTouchStartYRef.current - e.changedTouches[0].clientY;
+    const { scrollTop, scrollHeight, clientHeight } = sheetContentRef.current;
+
+    // 축소 상태(collapsed)일 때는 콘텐츠 내부에서 위로 쓸어올리면 풀페이지로 전환
+    if (mobileSheetMode === 'collapsed' && diffY > 30) {
+      setMobileSheetMode('expanded');
+    }
+    // 확장 상태(expanded)일 때:
+    else if (mobileSheetMode === 'expanded') {
+      // 콘텐츠 영역 스크롤이 맨 위에 도달해 더 이상 위로 갈 곳이 없는데 아래로 쓸어내릴 경우 -> 바텀시트 축소
+      if (scrollTop <= 5 && diffY < -40) {
         setMobileSheetMode('collapsed');
       }
     }
-    sheetTouchStartYRef.current = null;
+    contentTouchStartYRef.current = null;
   };
 
   return (
@@ -1022,17 +1053,17 @@ export default function InteractiveMap({
       {/* 3. 모바일 전용: 하단 서랍형(바텀시트) - 지도는 70% 차지, 바텀시트는 30% 기본 차지 */}
       {/* ========================================================= */}
       <div
-        onTouchStart={handleSheetTouchStart}
-        onTouchMove={handleSheetTouchMove}
-        onTouchEnd={handleSheetTouchEnd}
         className={`md:hidden fixed left-0 right-0 bottom-0 z-[60] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.18)] border-t border-gray-200 transition-all duration-300 flex flex-col ${
-          mobileSheetMode === 'expanded' ? 'h-[100dvh] top-0 rounded-t-none' : 'h-[30vh]'
+          mobileSheetMode === 'expanded' ? 'h-[96dvh] top-[4dvh]' : 'h-[30vh]'
         }`}
       >
-        {/* 상단 서랍 손잡이 핸들바 (터치/클릭 시 30% <-> 풀페이지 토글, 쓸어올리기 지원) */}
+        {/* 상단 서랍 손잡이 핸들바 (꼭지 버튼 영역 잡고 쓸어올리기/내리기 지원) */}
         <div
+          onTouchStart={onHandleTouchStart}
+          onTouchMove={onHandleTouchMove}
+          onTouchEnd={onHandleTouchEnd}
           onClick={() => setMobileSheetMode(mobileSheetMode === 'collapsed' ? 'expanded' : 'collapsed')}
-          className="pt-3 pb-2 px-4 flex flex-col items-center justify-center cursor-pointer select-none bg-white border-b border-gray-100 flex-shrink-0 touch-none"
+          className="pt-3 pb-2.5 px-4 flex flex-col items-center justify-center cursor-pointer select-none bg-white border-b border-gray-100 flex-shrink-0 touch-none rounded-t-3xl"
         >
           {/* 눈에 잘 띄는 중앙 드래그 핸들 */}
           <div className="w-12 h-1.5 bg-gray-300 hover:bg-gray-400 rounded-full mb-1.5 transition" />
@@ -1072,9 +1103,12 @@ export default function InteractiveMap({
           </div>
         </div>
 
-        {/* 바텀시트 본문 스크롤 영역 (브라우저 당겨서 새로고침 방지: overscroll-contain) */}
+        {/* 바텀시트 본문 스크롤 영역 (콘텐츠 내부 제스처 분리: 스크롤 끝 도달 시에만 시트 동작) */}
         <div
           ref={sheetContentRef}
+          onTouchStart={onContentTouchStart}
+          onTouchMove={onContentTouchMove}
+          onTouchEnd={onContentTouchEnd}
           className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-2.5 scrollbar-thin scrollbar-thumb-gray-200"
         >
           {/* 모바일 1단 추천 배너 (컴팩트 스와이프) */}
@@ -1255,16 +1289,12 @@ export default function InteractiveMap({
         </div>
       </div>
 
-      {/* 모바일 전용: 선택 축제 상세 바텀시트 모달 (B안: 60% 하프 시트 -> 92% 풀스크린 2단계, z-[70]으로 최상위 보장) */}
+      {/* 모바일 전용: 선택 축제 상세 풀사이즈 바텀시트 모달 (쓸어내리거나 X 클릭 시 닫혀 검색시트 복귀, z-[70]으로 최상위 보장) */}
       {selectedFestival && (
-        <div className="md:hidden fixed inset-0 z-[70] bg-black/50 flex flex-col justify-end">
+        <div className="md:hidden fixed inset-0 z-[70] bg-black/60 flex flex-col justify-end">
           <FestivalDetailPanel
             festival={selectedFestival}
             onClose={() => onSelectFestival(null)}
-            mobileMode={mobileDetailMode}
-            onToggleMobileMode={() =>
-              setMobileDetailMode(mobileDetailMode === 'half' ? 'full' : 'half')
-            }
           />
         </div>
       )}
