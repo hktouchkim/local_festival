@@ -144,14 +144,6 @@ export default function InteractiveMap({
     }
   ];
 
-  // 4초 간격 자동 롤링 (사용자가 마우스를 올리거나 스와이프하지 않을 때 작동)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveBannerIdx((prev) => (prev + 1) % THEME_BANNERS.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [THEME_BANNERS.length]);
-
   const handlePrevBanner = () => {
     setActiveBannerIdx((prev) => (prev - 1 + THEME_BANNERS.length) % THEME_BANNERS.length);
   };
@@ -748,7 +740,7 @@ export default function InteractiveMap({
                           item.bg
                         } ${isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-1">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <span className="text-xl flex-shrink-0 drop-shadow-xs">{item.icon}</span>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
@@ -763,11 +755,6 @@ export default function InteractiveMap({
                               {item.desc}
                             </p>
                           </div>
-                        </div>
-
-                        {/* 우측 간단 화살표 */}
-                        <div className="flex items-center flex-shrink-0 pl-1 text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-transform font-bold text-xs">
-                          〉
                         </div>
                       </div>
                     );
