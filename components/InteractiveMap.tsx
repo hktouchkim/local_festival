@@ -90,6 +90,30 @@ export default function InteractiveMap({
   } | null>(null);
   const [showRefreshBtn, setShowRefreshBtn] = useState(false);
 
+  // '현 지도에서 검색' 버튼 클릭 시 현재 보고 있는 영역을 적용하여 목록 갱신
+  const handleSearchInCurrentMap = () => {
+    if (currentBounds) {
+      setAppliedBounds(currentBounds);
+    }
+    setShowRefreshBtn(false);
+  };
+
+  // 현재 지도 화면(appliedBounds) 안에 실제로 들어와 있는 축제들만 필터링
+  const visibleFestivals = useMemo(() => {
+    if (!appliedBounds) return festivals;
+    return festivals.filter(fest => {
+      const lat = fest.mapy;
+      const lng = fest.mapx;
+      if (!lat || !lng) return false;
+      return (
+        lat >= appliedBounds.minLat &&
+        lat <= appliedBounds.maxLat &&
+        lng >= appliedBounds.minLng &&
+        lng <= appliedBounds.maxLng
+      );
+    });
+  }, [festivals, appliedBounds]);
+
   // 카카오 지도 스크립트 동적 로드 및 맵 초기화
   useEffect(() => {
     let isMounted = true;
@@ -402,30 +426,6 @@ export default function InteractiveMap({
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
-
-  // '현 지도에서 검색' 버튼 클릭 시 현재 보고 있는 영역을 적용하여 목록 갱신
-  const handleSearchInCurrentMap = () => {
-    if (currentBounds) {
-      setAppliedBounds(currentBounds);
-    }
-    setShowRefreshBtn(false);
-  };
-
-  // 현재 지도 화면(appliedBounds) 안에 실제로 들어와 있는 축제들만 필터링
-  const visibleFestivals = useMemo(() => {
-    if (!appliedBounds) return festivals;
-    return festivals.filter(fest => {
-      const lat = fest.mapy;
-      const lng = fest.mapx;
-      if (!lat || !lng) return false;
-      return (
-        lat >= appliedBounds.minLat &&
-        lat <= appliedBounds.maxLat &&
-        lng >= appliedBounds.minLng &&
-        lng <= appliedBounds.maxLng
-      );
-    });
-  }, [festivals, appliedBounds]);
 
   // 모바일 전용 전체화면 팝업 오버레이 상태
   const [isMobileOverlayOpen, setIsMobileOverlayOpen] = useState(false);
