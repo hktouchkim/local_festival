@@ -826,7 +826,10 @@ export default function InteractiveMap({
                   </span>
                 </label>
 
-                <label className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
+                <label
+                  className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black"
+                  title="종료일 기준 최근 1년 이내 종료된 축제만 노출"
+                >
                   <input
                     type="checkbox"
                     checked={showEnded}
@@ -835,7 +838,7 @@ export default function InteractiveMap({
                   />
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    종료
+                    종료 (1년 이내)
                   </span>
                 </label>
               </div>

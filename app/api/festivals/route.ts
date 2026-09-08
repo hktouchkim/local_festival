@@ -50,11 +50,16 @@ export async function GET(request: Request) {
   const showUpcoming = searchParams.get('upcoming') === 'true';
   const showEnded = searchParams.get('ended') === 'true';
 
-  // 진행 상태 필터링 (진행중, 예정, 종료)
+  // 1년 전 기준일 계산 (예: 2026-09-08 -> 2025-09-08)
+  const oneYearAgo = new Date(todayStr);
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0];
+
+  // 진행 상태 필터링 (진행중, 예정, 최근 1년 이내 종료)
   list = list.filter(f => {
     const isOngoing = f.start_date <= todayStr && f.end_date >= todayStr;
     const isUpcoming = f.start_date > todayStr;
-    const isEnded = f.end_date < todayStr;
+    const isEnded = f.end_date < todayStr && f.end_date >= oneYearAgoStr;
 
     // 만약 모두 꺼져있으면 아무것도 노출하지 않음
     if (!showOngoing && !showUpcoming && !showEnded) return false;
