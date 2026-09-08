@@ -90,6 +90,8 @@ export default function InteractiveMap({
   const initialCenterRef = useRef<{ lat: number; lng: number; level: number } | null>(null);
   // 서비스/프로그램에 의한 지도 자동 이동 여부 플래그 (사용자 직접 드래그/줌 조작 시에만 false)
   const isProgrammaticMoveRef = useRef<boolean>(true);
+  // 커스텀 스무스 글라이딩 애니메이션 프레임 레퍼런스
+  const flyAnimationRef = useRef<number | null>(null);
 
   // 현재 지도가 위치한 실시간 영역 및 재검색 버튼 노출 여부
   const [currentBounds, setCurrentBounds] = useState<{
@@ -385,29 +387,70 @@ export default function InteractiveMap({
         map.setLevel(7, { animate: true });
       }
 
-      // 2. 레벨 7 기준의 정밀한 프로젝션 픽셀 오프셋(우측 가용 영역 중앙 배치) 계산
-      const applyOffsetPan = () => {
-        if (!kakaoMapInstance.current || !window.kakao) return;
-        const currentMap = kakaoMapInstance.current;
-        let targetCenter = markerLatLon;
+      // 부드러운 글라이딩(Smooth Fly-to) 카메라 이동 구현 (A안)
+      // 이전 실행 중이던 애니메이션이 있으면 취소
+      if (flyAnimationRef.current) {
+        cancelAnimationFrame(flyAnimationRef.current);
+        flyAnimationRef.current = null;
+      }
 
-        if (isDesktop && currentMap.getProjection) {
-          try {
-            const proj = currentMap.getProjection();
-            const point = proj.pointFromCoords(markerLatLon);
-            // 좌측 총 점유 너비(약 816px)의 절반인 약 410px만큼 중심점을 좌측으로 오프셋
-            const offsetPoint = new window.kakao.maps.Point(point.x - 410, point.y);
-            targetCenter = proj.coordsFromPoint(offsetPoint);
-          } catch (e) {
-            targetCenter = markerLatLon;
-          }
+      // 목표 좌표 계산: 레벨 7 기준 우측 가용 영역 중앙에 오도록 410px 오프셋 반영
+      let targetCenterLat = targetLat;
+      let targetCenterLng = targetLng;
+
+      if (isDesktop && map.getProjection) {
+        try {
+          const proj = map.getProjection();
+          const point = proj.pointFromCoords(markerLatLon);
+          const offsetPoint = new window.kakao.maps.Point(point.x - 410, point.y);
+          const offsetCoords = proj.coordsFromPoint(offsetPoint);
+          targetCenterLat = offsetCoords.getLat();
+          targetCenterLng = offsetCoords.getLng();
+        } catch (e) {
+          targetCenterLat = targetLat;
+          targetCenterLng = targetLng;
         }
-        currentMap.panTo(targetCenter);
-      };
+      }
 
-      // 줌 애니메이션과 동기화하여 부드럽게 패닝 실행
-      applyOffsetPan();
-      setTimeout(applyOffsetPan, 100);
+      const startCenter = map.getCenter();
+      const startLat = startCenter.getLat();
+      const startLng = startCenter.getLng();
+
+      // 위경도 차이가 거의 없으면 바로 설정
+      const distLat = Math.abs(targetCenterLat - startLat);
+      const distLng = Math.abs(targetCenterLng - startLng);
+      if (distLat < 0.0001 && distLng < 0.0001) {
+        map.setCenter(new window.kakao.maps.LatLng(targetCenterLat, targetCenterLng));
+      } else {
+        const duration = 650; // 0.65초 부드러운 비행
+        const startTime = performance.now();
+
+        // 큐빅 이징 (easeInOutCubic) 함수: 시작과 끝이 매우 부드러움
+        const easeInOutCubic = (t: number) => {
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        };
+
+        const animateGliding = (currentTime: number) => {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const easeProgress = easeInOutCubic(progress);
+
+          const currentLat = startLat + (targetCenterLat - startLat) * easeProgress;
+          const currentLng = startLng + (targetCenterLng - startLng) * easeProgress;
+
+          if (kakaoMapInstance.current && window.kakao) {
+            kakaoMapInstance.current.setCenter(new window.kakao.maps.LatLng(currentLat, currentLng));
+          }
+
+          if (progress < 1) {
+            flyAnimationRef.current = requestAnimationFrame(animateGliding);
+          } else {
+            flyAnimationRef.current = null;
+          }
+        };
+
+        flyAnimationRef.current = requestAnimationFrame(animateGliding);
+      }
 
       let popupBadge = '<span class="bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">진행중</span>';
       if (selectedFestival.start_date > TODAY_STR) {
