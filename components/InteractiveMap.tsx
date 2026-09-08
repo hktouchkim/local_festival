@@ -977,6 +977,7 @@ export default function InteractiveMap({
         {selectedFestival && (
           <div className="h-full py-4 pl-4 flex items-center pointer-events-auto">
             <FestivalDetailPanel
+              key={selectedFestival.id}
               festival={selectedFestival}
               onClose={() => onSelectFestival(null)}
             />
@@ -1280,6 +1281,7 @@ export default function InteractiveMap({
       {selectedFestival && (
         <div className="md:hidden fixed inset-0 z-[70] bg-black/60 flex flex-col justify-end">
           <FestivalDetailPanel
+            key={selectedFestival.id}
             festival={selectedFestival}
             onClose={() => onSelectFestival(null)}
           />
