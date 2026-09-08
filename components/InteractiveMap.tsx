@@ -599,6 +599,44 @@ export default function InteractiveMap({
   // 모바일 전용 상세 바텀시트 모드 ('half': 60% 높이, 'full': 92% 풀스크린) - B안
   const [mobileDetailMode, setMobileDetailMode] = useState<'half' | 'full'>('half');
 
+  // 모바일 바텀시트 제스처(스와이프/쓸어올리기/내리기) 터치 추적 Ref
+  const sheetTouchStartYRef = useRef<number | null>(null);
+  const sheetContentRef = useRef<HTMLDivElement | null>(null);
+
+  // 모바일 바텀시트 핸들바 및 헤더 터치 제스처 핸들러
+  const handleSheetTouchStart = (e: React.TouchEvent) => {
+    sheetTouchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleSheetTouchMove = (e: React.TouchEvent) => {
+    // 브라우저 기본 새로고침(Pull-to-refresh) 차단을 위해 expanded 상태에서 아래로 드래그 시 제어
+    if (sheetTouchStartYRef.current !== null && mobileSheetMode === 'expanded') {
+      const currentY = e.touches[0].clientY;
+      const diffY = currentY - sheetTouchStartYRef.current;
+      // 시트 스크롤이 맨 위에 있을 때 아래로 드래그하면 시트 축소 의도로 판정
+      if (diffY > 10 && sheetContentRef.current && sheetContentRef.current.scrollTop <= 0) {
+        if (e.cancelable) e.preventDefault();
+      }
+    }
+  };
+
+  const handleSheetTouchEnd = (e: React.TouchEvent) => {
+    if (sheetTouchStartYRef.current === null) return;
+    const diffY = sheetTouchStartYRef.current - e.changedTouches[0].clientY;
+    // 위로 35px 이상 쓸어올렸을 때 -> 풀페이지 확장
+    if (diffY > 35) {
+      setMobileSheetMode('expanded');
+    }
+    // 아래로 35px 이상 내렸을 때 -> 30%로 축소
+    else if (diffY < -35) {
+      // 본문이 맨 위에 있거나 핸들바를 드래그한 경우에만 축소
+      if (!sheetContentRef.current || sheetContentRef.current.scrollTop <= 5) {
+        setMobileSheetMode('collapsed');
+      }
+    }
+    sheetTouchStartYRef.current = null;
+  };
+
   return (
     <div className="w-full h-full relative overflow-hidden flex flex-col">
       {/* 내 위치 중심 이동 플로팅 버튼 (PC: 우측 하단, 모바일: 바텀시트 바로 위 우측) */}
@@ -980,17 +1018,24 @@ export default function InteractiveMap({
       {/* ========================================================= */}
       {/* 3. 모바일 전용: 하단 서랍형(바텀시트) - 지도는 70% 차지, 바텀시트는 30% 기본 차지 */}
       {/* ========================================================= */}
+      {/* ========================================================= */}
+      {/* 3. 모바일 전용: 하단 서랍형(바텀시트) - 지도는 70% 차지, 바텀시트는 30% 기본 차지 */}
+      {/* ========================================================= */}
       <div
-        className={`md:hidden fixed left-0 right-0 bottom-0 z-30 bg-white/98 backdrop-blur-md rounded-t-2xl shadow-2xl border-t border-gray-200 transition-all duration-300 flex flex-col ${
-          mobileSheetMode === 'expanded' ? 'h-full top-0' : 'h-[30vh]'
+        onTouchStart={handleSheetTouchStart}
+        onTouchMove={handleSheetTouchMove}
+        onTouchEnd={handleSheetTouchEnd}
+        className={`md:hidden fixed left-0 right-0 bottom-0 z-[60] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.18)] border-t border-gray-200 transition-all duration-300 flex flex-col ${
+          mobileSheetMode === 'expanded' ? 'h-[100dvh] top-0 rounded-t-none' : 'h-[30vh]'
         }`}
       >
-        {/* 상단 서랍 손잡이 핸들바 (터치/클릭 시 30% <-> 풀페이지 토글) */}
+        {/* 상단 서랍 손잡이 핸들바 (터치/클릭 시 30% <-> 풀페이지 토글, 쓸어올리기 지원) */}
         <div
           onClick={() => setMobileSheetMode(mobileSheetMode === 'collapsed' ? 'expanded' : 'collapsed')}
-          className="pt-2.5 pb-2 px-4 flex flex-col items-center justify-center cursor-pointer select-none bg-white border-b border-gray-100 flex-shrink-0"
+          className="pt-3 pb-2 px-4 flex flex-col items-center justify-center cursor-pointer select-none bg-white border-b border-gray-100 flex-shrink-0 touch-none"
         >
-          <div className="w-10 h-1 bg-gray-300 rounded-full mb-1.5" />
+          {/* 눈에 잘 띄는 중앙 드래그 핸들 */}
+          <div className="w-12 h-1.5 bg-gray-300 hover:bg-gray-400 rounded-full mb-1.5 transition" />
           <div className="w-full flex items-center justify-between text-xs font-bold text-gray-800">
             <span className="flex items-center gap-1.5">
               <span>축제 검색 & 탐색</span>
@@ -999,36 +1044,39 @@ export default function InteractiveMap({
               </span>
             </span>
             <span className="text-[11px] text-blue-600 font-semibold flex items-center gap-0.5">
-              {mobileSheetMode === 'collapsed' ? '위로 쓸어올려 전체보기 ↑' : '지도로 내려보기 ↓'}
+              {mobileSheetMode === 'collapsed' ? '펼치기 ↑' : '지도로 내려보기 ↓'}
             </span>
           </div>
         </div>
 
-        {/* 1) 검색창 (바텀시트 상단 고정) */}
-        <div className="p-2.5 border-b border-gray-100 bg-white flex-shrink-0">
-          <div className="relative flex items-center shadow-xs rounded-xl overflow-hidden bg-slate-50 border border-slate-200">
-            <Search className="w-4 h-4 text-[#0A2540] ml-3 flex-shrink-0" />
+        {/* 1) 검색창 (바텀시트 상단 고정 - 크기 확대 및 쾌적한 터치 영역) */}
+        <div className="p-3 border-b border-gray-100 bg-white flex-shrink-0">
+          <div className="relative flex items-center shadow-xs rounded-xl overflow-hidden bg-slate-50 border border-slate-300 focus-within:border-[#0A2540] focus-within:ring-2 focus-within:ring-blue-100 transition">
+            <Search className="w-4 h-4 text-[#0A2540] ml-3.5 flex-shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onFocus={() => setMobileSheetMode('expanded')}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="축제명 또는 주소를 입력하세요."
-              className="w-full pl-2.5 pr-8 py-2 text-xs font-medium text-gray-900 placeholder:text-gray-400 bg-transparent focus:outline-none"
+              className="w-full pl-3 pr-10 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 bg-transparent focus:outline-none"
             />
             {searchQuery ? (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-1"
+                className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-1.5"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             ) : null}
           </div>
         </div>
 
-        {/* 바텀시트 본문 스크롤 영역 */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-thin scrollbar-thumb-gray-200">
+        {/* 바텀시트 본문 스크롤 영역 (브라우저 당겨서 새로고침 방지: overscroll-contain) */}
+        <div
+          ref={sheetContentRef}
+          className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-2.5 scrollbar-thin scrollbar-thumb-gray-200"
+        >
           {/* 모바일 1단 추천 배너 (컴팩트 스와이프) */}
           <div className="space-y-1">
             <div
@@ -1207,9 +1255,9 @@ export default function InteractiveMap({
         </div>
       </div>
 
-      {/* 모바일 전용: 선택 축제 상세 바텀시트 모달 (B안: 60% 하프 시트 -> 92% 풀스크린 2단계) */}
+      {/* 모바일 전용: 선택 축제 상세 바텀시트 모달 (B안: 60% 하프 시트 -> 92% 풀스크린 2단계, z-[70]으로 최상위 보장) */}
       {selectedFestival && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-xs flex flex-col justify-end">
+        <div className="md:hidden fixed inset-0 z-[70] bg-black/50 flex flex-col justify-end">
           <FestivalDetailPanel
             festival={selectedFestival}
             onClose={() => onSelectFestival(null)}

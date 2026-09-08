@@ -79,25 +79,45 @@ export default function FestivalDetailPanel({
     }
   };
 
+  // 모바일 상세 시트 스와이프 추적 Ref
+  const detailTouchStartYRef = useRef<number | null>(null);
+
+  const handleDetailTouchStart = (e: React.TouchEvent) => {
+    detailTouchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleDetailTouchEnd = (e: React.TouchEvent) => {
+    if (detailTouchStartYRef.current === null || !onToggleMobileMode) return;
+    const diffY = detailTouchStartYRef.current - e.changedTouches[0].clientY;
+    // 위로 35px 이상 쓸어올렸을 때 -> 풀스크린(full) 확장
+    if (diffY > 35 && mobileMode === 'half') {
+      onToggleMobileMode();
+    }
+    // 아래로 35px 이상 내렸을 때 -> 하프(half) 축소 또는 닫기
+    else if (diffY < -35 && mobileMode === 'full') {
+      onToggleMobileMode();
+    }
+    detailTouchStartYRef.current = null;
+  };
+
   return (
     <div
-      className={`w-full md:w-[410px] md:max-w-[calc(100vw-450px)] bg-white/95 backdrop-blur-md rounded-t-2xl md:rounded-2xl border border-gray-200/90 shadow-2xl flex flex-col overflow-hidden animate-fade-in relative z-30 transition-all duration-300 ${
+      onTouchStart={handleDetailTouchStart}
+      onTouchEnd={handleDetailTouchEnd}
+      className={`w-full md:w-[410px] md:max-w-[calc(100vw-450px)] bg-white rounded-t-3xl md:rounded-2xl border border-gray-200/90 shadow-2xl flex flex-col overflow-hidden animate-fade-in relative z-30 transition-all duration-300 ${
         mobileMode === 'full' ? 'h-[92vh] md:h-full' : 'h-[60vh] md:h-full'
       }`}
     >
       {/* 모바일 전용 상단 손잡이 바 (터치 시 60% <-> 92% 풀스크린 토글) */}
       <div
         onClick={onToggleMobileMode}
-        className="md:hidden pt-2.5 pb-1 flex flex-col items-center justify-center cursor-pointer select-none bg-white/95"
+        className="md:hidden pt-3 pb-2 flex flex-col items-center justify-center cursor-pointer select-none bg-white touch-none"
       >
-        <div className="w-10 h-1 bg-gray-300 rounded-full mb-1" />
-        <span className="text-[10px] font-semibold text-gray-400">
-          {mobileMode === 'half' ? '쓸어올려 전체보기 ↑' : '내려서 지도보기 ↓'}
-        </span>
+        <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
       </div>
 
       {/* 1. 상단 바: 타이틀 및 닫기 버튼 */}
-      <div className="p-3.5 border-b border-gray-100 bg-white/95 flex items-center justify-between sticky top-0 z-20">
+      <div className="p-3.5 border-b border-gray-100 bg-white flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-1.5 min-w-0 pr-2">
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${badgeColor}`}>
             {badgeText}
