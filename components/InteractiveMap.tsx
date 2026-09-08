@@ -370,6 +370,10 @@ export default function InteractiveMap({
     }
 
     if (selectedFestival && selectedFestival.mapy && selectedFestival.mapx) {
+      // 축제 선택으로 인한 자동 이동 시 '현 지도에서 검색' 버튼 노출 억제
+      isProgrammaticMoveRef.current = true;
+      setShowRefreshBtn(false);
+
       const targetLat = Number(selectedFestival.mapy);
       const targetLng = Number(selectedFestival.mapx);
       const markerLatLon = new window.kakao.maps.LatLng(targetLat, targetLng);
@@ -606,47 +610,44 @@ export default function InteractiveMap({
 
             {/* 패널 내부 스크롤 콘텐츠 (추천 큐레이션 + 칩 + 체크박스 + 결과 목록) */}
             <div className="p-3.5 space-y-3">
-              {/* 에디터 픽: 맞춤 큐레이션 추천 축제 (A안 세로 셀렉터 형태) */}
+              {/* 한경 트레블 추천 (진한 색상과 카드 전체 클릭감) */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between px-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-3.5 bg-[#0A2540] rounded-full" />
-                    <span className="font-extrabold text-xs text-gray-900 tracking-tight">에디터 맞춤 큐레이션</span>
-                  </div>
-                  <span className="text-[10px] text-gray-400 font-medium">테마 선택 시 결과 즉시 전환</span>
+                <div className="flex items-center gap-1.5 px-0.5">
+                  <span className="w-1.5 h-3.5 bg-[#0A2540] rounded-full" />
+                  <span className="font-extrabold text-xs text-gray-900 tracking-tight">한경 트레블 추천</span>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {[
                     {
                       key: 'HOT',
                       title: 'HOT 10 축제',
                       desc: '지금 가장 주목받는 전국 인기 축제 모음',
-                      badge: 'EDITOR PICK',
-                      badgeStyle: 'bg-amber-100 text-amber-800 border-amber-300',
+                      badge: 'HOT PICK',
                       icon: '🔥',
-                      activeBorder: 'border-amber-500 ring-2 ring-amber-400/40 bg-gradient-to-r from-amber-50/90 to-orange-50/90',
-                      hoverBorder: 'hover:border-amber-300 hover:bg-amber-50/40'
+                      defaultBg: 'bg-gradient-to-r from-orange-600 via-amber-600 to-amber-700 text-white shadow-md hover:from-orange-700 hover:to-amber-800',
+                      activeBg: 'bg-gradient-to-r from-orange-700 to-amber-900 text-white ring-2 ring-offset-2 ring-orange-500 shadow-lg scale-[0.99]',
+                      badgeBg: 'bg-black/25 text-amber-200 border border-white/20'
                     },
                     {
                       key: 'MUSIC',
                       title: '뮤직 & 페스티벌',
                       desc: '음악·공연·버스킹·락 축제 엄선 큐레이션',
                       badge: 'LIVE STAGE',
-                      badgeStyle: 'bg-blue-100 text-blue-800 border-blue-300',
                       icon: '🎵',
-                      activeBorder: 'border-blue-600 ring-2 ring-blue-500/40 bg-gradient-to-r from-blue-50/90 to-indigo-50/90',
-                      hoverBorder: 'hover:border-blue-300 hover:bg-blue-50/40'
+                      defaultBg: 'bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white shadow-md hover:from-blue-800 hover:to-indigo-900',
+                      activeBg: 'bg-gradient-to-r from-blue-800 to-indigo-950 text-white ring-2 ring-offset-2 ring-blue-500 shadow-lg scale-[0.99]',
+                      badgeBg: 'bg-black/25 text-blue-200 border border-white/20'
                     },
                     {
                       key: 'NIGHT',
                       title: '야간 & 빛 축제',
                       desc: '낭만 가득 불꽃·달빛·드론 야경 스팟',
                       badge: 'NIGHT VIEW',
-                      badgeStyle: 'bg-purple-100 text-purple-800 border-purple-300',
                       icon: '🌙',
-                      activeBorder: 'border-[#0A2540] ring-2 ring-slate-700/30 bg-gradient-to-r from-purple-50/90 to-slate-100/90',
-                      hoverBorder: 'hover:border-purple-300 hover:bg-purple-50/40'
+                      defaultBg: 'bg-gradient-to-r from-purple-800 via-indigo-900 to-[#0A2540] text-white shadow-md hover:from-purple-900 hover:to-[#071b30]',
+                      activeBg: 'bg-gradient-to-r from-purple-900 to-[#051424] text-white ring-2 ring-offset-2 ring-purple-400 shadow-lg scale-[0.99]',
+                      badgeBg: 'bg-black/25 text-purple-200 border border-white/20'
                     }
                   ].map((item) => {
                     const isActive = selectedTheme === item.key;
@@ -654,39 +655,30 @@ export default function InteractiveMap({
                       <button
                         key={item.key}
                         onClick={() => handleThemeBannerClick(item.key)}
-                        className={`w-full p-2.5 rounded-xl text-left transition-all duration-200 border bg-white shadow-2xs flex items-center justify-between cursor-pointer ${
-                          isActive
-                            ? item.activeBorder
-                            : `border-gray-200/90 ${item.hoverBorder}`
+                        className={`w-full p-3 rounded-xl text-left transition-all duration-200 cursor-pointer flex items-center justify-between group active:scale-[0.98] ${
+                          isActive ? item.activeBg : item.defaultBg
                         }`}
                       >
-                        <div className="flex items-start gap-2.5 min-w-0 pr-2">
-                          <span className="text-lg flex-shrink-0 mt-0.5">{item.icon}</span>
+                        <div className="flex items-center gap-3 min-w-0 pr-1">
+                          <span className="text-xl flex-shrink-0 drop-shadow-sm">{item.icon}</span>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-extrabold text-xs text-gray-900 tracking-tight truncate">
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-xs text-white tracking-tight truncate drop-shadow-xs">
                                 {item.title}
                               </span>
-                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${item.badgeStyle}`}>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${item.badgeBg}`}>
                                 {item.badge}
                               </span>
                             </div>
-                            <p className="text-[11px] text-gray-500 mt-0.5 truncate leading-tight">
+                            <p className="text-[11px] text-white/85 mt-0.5 truncate leading-tight font-medium">
                               {item.desc}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {isActive ? (
-                            <span className="inline-flex items-center gap-0.5 bg-[#0A2540] text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-2xs">
-                              선택됨 ✓
-                            </span>
-                          ) : (
-                            <span className="text-[11px] font-semibold text-gray-400 group-hover:text-gray-700 flex items-center gap-0.5">
-                              결과보기 →
-                            </span>
-                          )}
+                        {/* 우측 영역: 별도 버튼 없이 카드 전체 클릭 유도 화살표 */}
+                        <div className="flex items-center flex-shrink-0 pl-1 text-white/60 group-hover:text-white transition-transform group-hover:translate-x-0.5">
+                          <span className="text-xs font-bold">〉</span>
                         </div>
                       </button>
                     );
