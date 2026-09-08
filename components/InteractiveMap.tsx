@@ -714,9 +714,8 @@ export default function InteractiveMap({
         <div className="flex items-stretch h-full">
           {/* 패널 메인 바디 (너비 w-[390px], 상/하/좌 완전 밀착, overflow-y-auto, stable-scrollbar) */}
           <div className="w-[390px] bg-white border-r border-gray-200 shadow-xl flex flex-col h-full overflow-y-auto stable-scrollbar scrollbar-thin scrollbar-thumb-gray-200 select-none">
-            {/* [상단 고정 Sticky Header] 검색어 입력창 (내부 우측에 검색어 지우기 및 초기화 버튼 통합) */}
+            {/* 1. 검색창 (초기화 버튼 삭제, 입력 내용이 있을 때 x 누르면 검색어 및 필터 전체 초기화) */}
             <div className="sticky top-0 z-20 bg-white p-3.5 border-b border-gray-100 shadow-xs">
-              {/* 시인성 강화된 검색창 (상단 고정으로 언제든 재검색 가능, 우측에 초기화 버튼 배치) */}
               <div className="relative flex items-center">
                 <Search className="w-4 h-4 text-[#0A2540] absolute left-3 font-bold" />
                 <input
@@ -724,33 +723,23 @@ export default function InteractiveMap({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="축제명 또는 주소를 입력하세요."
-                  className="w-full pl-9 pr-20 py-2.5 bg-white border-2 border-slate-300 focus:border-[#0A2540] rounded-xl text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none shadow-xs transition"
+                  className="w-full pl-9 pr-9 py-2.5 bg-white border-2 border-slate-300 focus:border-[#0A2540] rounded-xl text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none shadow-xs transition"
                 />
-                <div className="absolute right-2 flex items-center gap-1">
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="text-gray-400 hover:text-gray-600 p-1"
-                      title="입력 내용 지우기"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                {searchQuery && (
                   <button
                     onClick={onResetFilters}
-                    className="text-[11px] text-gray-500 hover:text-[#0A2540] hover:bg-slate-100 px-1.5 py-1 rounded transition flex items-center gap-0.5 font-bold cursor-pointer"
-                    title="모든 검색어 및 필터 조건 초기화"
+                    className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-1"
+                    title="검색어 지우기 및 필터 초기화"
                   >
-                    <RotateCcw className="w-3 h-3 text-gray-400" />
-                    <span>초기화</span>
+                    <X className="w-4 h-4" />
                   </button>
-                </div>
+                )}
               </div>
             </div>
 
-            {/* 패널 내부 스크롤 콘텐츠 (롤링 배너 + 구분선 + 기간 칩 + 체크박스 + 결과 목록) */}
-            <div className="p-3.5 space-y-3">
-              {/* 1단 롤링 추천 배너 (도트 하단 분리, 스와이프 제스처 및 클릭 넘김 지원) */}
+            {/* 패널 내부 스크롤 콘텐츠 */}
+            <div className="p-3.5 space-y-3.5">
+              {/* 2. 배너 (1단 롤링 추천 배너 + 인디케이터 도트) */}
               <div className="space-y-1.5">
                 <div
                   className="relative group touch-pan-y"
@@ -809,7 +798,7 @@ export default function InteractiveMap({
                   })}
                 </div>
 
-                {/* 배너 하단 분리 배치된 인디케이터 도트 (직접 클릭 및 전환 가능) */}
+                {/* 배너 하단 분리 배치된 인디케이터 도트 */}
                 <div className="flex items-center justify-center gap-1.5 py-0.5">
                   {THEME_BANNERS.map((item, dotIdx) => (
                     <button
@@ -826,80 +815,65 @@ export default function InteractiveMap({
                 </div>
               </div>
 
-              {/* 구분선 (배너와 기간 선택 사이 시각적 분리 강화) */}
-              <div className="border-t border-gray-200/80 my-1" />
-
-              {/* 기간 필터 영역 (좌측에 축제 검색결과 및 건수 뱃지 배치) */}
-              <div className="flex items-center justify-between gap-2 overflow-x-auto pb-0.5 scrollbar-none">
-                {/* 1. 축제 검색결과 및 숫자 (기간필터 좌측) */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className="font-bold text-xs text-gray-900">축제</span>
-                  <span className="bg-blue-50 text-[#0A2540] font-extrabold text-[11px] px-2 py-0.5 rounded-full border border-blue-200">
-                    {visibleFestivals.length}
-                  </span>
-                </div>
-
-                {/* 2. 퀵 기간 칩 (이번 주 반영) */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {periodTabs.map((tab) => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setSelectedPeriod(tab.key)}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition ${
-                        selectedPeriod === tab.key
-                          ? 'bg-blue-50 text-[#0A2540] border border-blue-200 font-bold'
-                          : 'bg-slate-100 text-gray-500 hover:bg-slate-200'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+              {/* 3. 텍스트로 검색결과 안내 -> 총 ㅇㅇ개의 축제가 있습니다. */}
+              <div className="pt-1 border-t border-gray-100 flex items-center justify-between text-xs text-gray-700">
+                <span className="font-medium">
+                  총 <span className="font-extrabold text-[#0A2540] text-sm">{visibleFestivals.length}</span>개의 축제가 있습니다.
+                </span>
               </div>
 
-              {/* 진행중 / 진행예정 / 종료 체크박스 필터 */}
-              <div className="flex items-center gap-2.5 pt-1 border-t border-gray-100 text-[11px]">
-                <label className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
-                  <input
-                    type="checkbox"
-                    checked={showOngoing}
-                    onChange={(e) => setShowOngoing(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-emerald-600 border-gray-300 focus:ring-0 accent-emerald-600"
-                  />
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    진행 중
-                  </span>
-                </label>
-
-                <label className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
-                  <input
-                    type="checkbox"
-                    checked={showUpcoming}
-                    onChange={(e) => setShowUpcoming(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-[#e83428] border-gray-300 focus:ring-0 accent-[#e83428]"
-                  />
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#e83428]" />
-                    진행 예정
-                  </span>
-                </label>
-
-                <label
-                  className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black"
-                  title="종료일 기준 최근 1년 이내 종료된 축제만 노출"
+              {/* 5. 진행중, 진행예정, 종료 -> 복수선택 on/off가 되는 캡슐 형태 */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowOngoing(!showOngoing)}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+                    showOngoing
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs'
+                      : 'bg-slate-100 text-gray-400 border-transparent hover:bg-slate-200/70'
+                  }`}
                 >
-                  <input
-                    type="checkbox"
-                    checked={showEnded}
-                    onChange={(e) => setShowEnded(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded text-gray-500 border-gray-300 focus:ring-0 accent-gray-500"
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      showOngoing ? 'bg-emerald-500' : 'bg-gray-300'
+                    }`}
                   />
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    종료 (1년 이내)
-                  </span>
-                </label>
+                  <span>진행중</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowUpcoming(!showUpcoming)}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+                    showUpcoming
+                      ? 'bg-rose-50 text-[#e83428] border-rose-300 shadow-xs'
+                      : 'bg-slate-100 text-gray-400 border-transparent hover:bg-slate-200/70'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      showUpcoming ? 'bg-[#e83428]' : 'bg-gray-300'
+                    }`}
+                  />
+                  <span>진행예정</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowEnded(!showEnded)}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+                    showEnded
+                      ? 'bg-slate-200/80 text-gray-800 border-slate-300 shadow-xs'
+                      : 'bg-slate-100 text-gray-400 border-transparent hover:bg-slate-200/70'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      showEnded ? 'bg-gray-600' : 'bg-gray-300'
+                    }`}
+                  />
+                  <span>종료</span>
+                </button>
               </div>
 
               {/* 검색 결과 목록 */}
@@ -1090,7 +1064,7 @@ export default function InteractiveMap({
           </div>
         </div>
 
-        {/* 1) 검색창 (바텀시트 상단 고정 - 우측에 초기화 버튼 배치) */}
+        {/* 1. 검색창 (초기화 버튼 삭제, x 누르면 검색어 및 필터 초기화) */}
         <div className="p-3 border-b border-gray-100 bg-white flex-shrink-0">
           <div className="relative flex items-center shadow-xs rounded-xl overflow-hidden bg-slate-50 border border-slate-300 focus-within:border-[#0A2540] focus-within:ring-2 focus-within:ring-blue-100 transition">
             <Search className="w-4 h-4 text-[#0A2540] ml-3.5 flex-shrink-0" />
@@ -1100,27 +1074,17 @@ export default function InteractiveMap({
               onFocus={() => setMobileSheetMode('expanded')}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="축제명 또는 주소를 입력하세요."
-              className="w-full pl-3 pr-20 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 bg-transparent focus:outline-none"
+              className="w-full pl-3 pr-10 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 bg-transparent focus:outline-none"
             />
-            <div className="absolute right-2 flex items-center gap-1">
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="text-gray-400 hover:text-gray-600 p-1"
-                  title="검색어 지우기"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+            {searchQuery && (
               <button
                 onClick={onResetFilters}
-                className="text-[11px] text-gray-500 hover:text-[#0A2540] hover:bg-slate-200/60 px-1.5 py-1 rounded transition flex items-center gap-0.5 font-bold cursor-pointer"
-                title="모든 검색어 및 필터 조건 초기화"
+                className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-1.5"
+                title="검색어 지우기 및 필터 초기화"
               >
-                <RotateCcw className="w-3 h-3 text-gray-400" />
-                <span>초기화</span>
+                <X className="w-4 h-4" />
               </button>
-            </div>
+            )}
           </div>
         </div>
 
@@ -1130,9 +1094,9 @@ export default function InteractiveMap({
           onTouchStart={onContentTouchStart}
           onTouchMove={onContentTouchMove}
           onTouchEnd={onContentTouchEnd}
-          className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-2.5 scrollbar-thin scrollbar-thumb-gray-200"
+          className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-3 scrollbar-thin scrollbar-thumb-gray-200"
         >
-          {/* 모바일 1단 추천 배너 (컴팩트 스와이프) */}
+          {/* 2. 배너 (모바일 1단 추천 배너 + 인디케이터 도트) */}
           <div className="space-y-1">
             <div
               className="relative touch-pan-y"
@@ -1192,63 +1156,65 @@ export default function InteractiveMap({
             </div>
           </div>
 
-          {/* 기간 필터 영역 (좌측에 축제 검색결과 및 숫자 뱃지 배치) */}
-          <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-gray-100">
-            {/* 1. 축제 검색결과 및 숫자 (기간필터 좌측) */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="font-bold text-xs text-gray-900">축제</span>
-              <span className="bg-blue-50 text-[#0A2540] font-extrabold text-[11px] px-2 py-0.5 rounded-full border border-blue-200">
-                {visibleFestivals.length}
-              </span>
-            </div>
-
-            {/* 2. 퀵 기간 칩 */}
-            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-shrink-0">
-              {periodTabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setSelectedPeriod(tab.key)}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition ${
-                    selectedPeriod === tab.key
-                      ? 'bg-blue-50 text-[#0A2540] border border-blue-200 font-bold'
-                      : 'bg-slate-100 text-gray-500'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          {/* 3. 텍스트로 검색결과 안내 -> 총 ㅇㅇ개의 축제가 있습니다. */}
+          <div className="pt-1 border-t border-gray-100 flex items-center justify-between text-xs text-gray-700">
+            <span className="font-medium">
+              총 <span className="font-extrabold text-[#0A2540] text-sm">{visibleFestivals.length}</span>개의 축제가 있습니다.
+            </span>
           </div>
 
-          {/* 상태 필터 체크박스 */}
-          <div className="flex items-center gap-3 text-[11px] pt-1 pb-1 border-b border-gray-100 text-gray-700">
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={showOngoing}
-                onChange={(e) => setShowOngoing(e.target.checked)}
-                className="rounded text-emerald-600 w-3.5 h-3.5"
+          {/* 5. 진행중, 진행예정, 종료 -> 복수선택 on/off가 되는 캡슐 형태 */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowOngoing(!showOngoing)}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+                showOngoing
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs'
+                  : 'bg-slate-100 text-gray-400 border-transparent'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  showOngoing ? 'bg-emerald-500' : 'bg-gray-300'
+                }`}
               />
-              진행 중
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={showUpcoming}
-                onChange={(e) => setShowUpcoming(e.target.checked)}
-                className="rounded text-[#e83428] w-3.5 h-3.5"
+              <span>진행중</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowUpcoming(!showUpcoming)}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+                showUpcoming
+                  ? 'bg-rose-50 text-[#e83428] border-rose-300 shadow-xs'
+                  : 'bg-slate-100 text-gray-400 border-transparent'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  showUpcoming ? 'bg-[#e83428]' : 'bg-gray-300'
+                }`}
               />
-              진행 예정
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={showEnded}
-                onChange={(e) => setShowEnded(e.target.checked)}
-                className="rounded text-gray-500 w-3.5 h-3.5"
+              <span>진행예정</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowEnded(!showEnded)}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
+                showEnded
+                  ? 'bg-slate-200/80 text-gray-800 border-slate-300 shadow-xs'
+                  : 'bg-slate-100 text-gray-400 border-transparent'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  showEnded ? 'bg-gray-600' : 'bg-gray-300'
+                }`}
               />
-              종료 (1년)
-            </label>
+              <span>종료</span>
+            </button>
           </div>
 
           {/* 축제 목록 피드 */}
