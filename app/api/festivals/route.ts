@@ -9,6 +9,7 @@ export async function GET(request: Request) {
   const query = searchParams.get('q')?.toLowerCase() || '';
   const region = searchParams.get('region') || '전체';
   const period = searchParams.get('period') || 'ALL';
+  const todayStr = SERVICE_TODAY;
 
   let list = await getFestivals();
 
@@ -17,7 +18,6 @@ export async function GET(request: Request) {
     list = list.filter(f => f.status === 'PUBLISHED');
   }
 
-  // 2. 검색어 필터 (축제명 또는 주소, 또는 추천 테마 키워드 지원)
   // 2. 검색어 필터 (축제명 또는 주소, 또는 추천 테마 키워드 지원)
   if (query) {
     const qLower = query.toLowerCase();
@@ -54,7 +54,6 @@ export async function GET(request: Request) {
   }
 
   // 4. 기간/상태 필터
-  const todayStr = SERVICE_TODAY;
   const showOngoing = searchParams.get('ongoing') !== 'false';
   const showUpcoming = searchParams.get('upcoming') === 'true';
   const showEnded = searchParams.get('ended') === 'true';
