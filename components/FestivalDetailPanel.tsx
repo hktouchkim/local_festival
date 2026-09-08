@@ -6,7 +6,7 @@ import { SERVICE_TODAY } from '@/lib/data';
 import FestivalGallery, { GalleryImage } from '@/components/FestivalGallery';
 import {
   X, Calendar, MapPin, Clock, DollarSign, Phone, Globe,
-  Users, Sparkles, Building2, Ticket, FileText, Loader2, Share2
+  Users, Sparkles, Building2, Ticket, FileText, Loader2, Share2, Maximize2
 } from 'lucide-react';
 
 interface FestivalDetailPanelProps {
@@ -22,6 +22,7 @@ export default function FestivalDetailPanel({
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showPosterModal, setShowPosterModal] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
@@ -111,21 +112,34 @@ export default function FestivalDetailPanel({
 
       {/* 2. 패널 본문 (전체 세로 스크롤) */}
       <div className="flex-1 overflow-y-auto p-3.5 space-y-4 scrollbar-thin scrollbar-thumb-gray-200 text-xs">
-        {/* 대표 이미지 포스터 (잘림 없이 원본 비율 온전히 노출: object-contain) */}
-        <div className="w-full max-h-64 min-h-48 rounded-xl overflow-hidden bg-slate-900/95 relative border border-gray-100 shadow-xs flex items-center justify-center">
+        {/* 대표 이미지 포스터 (클릭 시 패널/화면 전체 확대 보기 지원) */}
+        <div
+          onClick={() => festival.firstimage && setShowPosterModal(true)}
+          className={`w-full max-h-64 min-h-48 rounded-xl overflow-hidden bg-slate-900/95 relative border border-gray-100 shadow-xs flex items-center justify-center group ${
+            festival.firstimage ? 'cursor-pointer' : ''
+          }`}
+          title={festival.firstimage ? '클릭하여 원본 포스터 크게 보기' : ''}
+        >
           {festival.firstimage ? (
-            <img
-              src={festival.firstimage}
-              alt={festival.title}
-              className="w-full h-auto max-h-64 object-contain"
-            />
+            <>
+              <img
+                src={festival.firstimage}
+                alt={festival.title}
+                className="w-full h-auto max-h-64 object-contain group-hover:scale-[1.02] transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <span className="p-2 bg-black/60 rounded-full text-white backdrop-blur-xs flex items-center gap-1.5 text-xs font-semibold shadow-md">
+                  <Maximize2 className="w-4 h-4" /> 크게 보기
+                </span>
+              </div>
+            </>
           ) : (
             <div className="w-full h-44 flex items-center justify-center text-gray-400 text-xs bg-slate-100">
               대표 이미지가 준비 중입니다.
             </div>
           )}
           {festival.festivalgrade && (
-            <span className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold bg-[#0A2540] text-white shadow-xs">
+            <span className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold bg-[#0A2540] text-white shadow-xs z-10">
               {festival.festivalgrade}
             </span>
           )}
@@ -271,6 +285,43 @@ export default function FestivalDetailPanel({
           </div>
         )}
       </div>
+
+      {/* 썸네일 포스터 원본 확대 라이트박스 팝업 (패널 및 화면에 꽉 차게 보기) */}
+      {showPosterModal && festival.firstimage && (
+        <div
+          onClick={() => setShowPosterModal(false)}
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 select-none animate-fadeIn cursor-pointer"
+        >
+          {/* 상단 닫기 버튼 */}
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-3">
+            <span className="text-white/80 text-xs font-semibold bg-white/10 px-3 py-1 rounded-full">
+              {festival.title}
+            </span>
+            <button
+              onClick={() => setShowPosterModal(false)}
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition"
+              title="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* 중앙 확대 이미지 */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-4xl max-h-[88vh] flex flex-col items-center justify-center relative cursor-default"
+          >
+            <img
+              src={festival.firstimage}
+              alt={festival.title}
+              className="max-w-full max-h-[82vh] object-contain rounded-xl shadow-2xl"
+            />
+            <p className="mt-3 text-white/90 text-xs md:text-sm text-center px-4 max-w-xl font-medium">
+              {festival.title} 대표 포스터
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
