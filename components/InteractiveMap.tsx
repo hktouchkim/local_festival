@@ -374,30 +374,36 @@ export default function InteractiveMap({
       const targetLng = Number(selectedFestival.mapx);
       const markerLatLon = new window.kakao.maps.LatLng(targetLat, targetLng);
 
-      // 부드러운 카메라 이동을 위해 대상 위치로 먼저 panTo 이동 후(또는 동시) 부드럽게 레벨 조정
-      let targetCenter = markerLatLon;
       const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
-      if (isDesktop && map.getProjection) {
-        try {
-          const proj = map.getProjection();
-          const point = proj.pointFromCoords(markerLatLon);
-          // 좌측 총 점유 너비(약 816px)의 절반인 약 410px만큼 중심점을 좌측으로 오프셋 주어 마커를 잔여 우측 중앙에 배치
-          const offsetPoint = new window.kakao.maps.Point(point.x - 410, point.y);
-          targetCenter = proj.coordsFromPoint(offsetPoint);
-        } catch (e) {
-          targetCenter = markerLatLon;
-        }
+
+      // 1. 레벨 7로 먼저 줌 조정 (레벨 12 상태에서 픽셀 오프셋을 계산하면 수백 km 서해 바다로 이동하는 오류 방지)
+      if (map.getLevel() !== 7) {
+        map.setLevel(7, { animate: true });
       }
 
-      // 지도 레벨이 7이 아닌 경우 부드러운 애니메이션 적용 및 좌표 스무스 패닝
-      map.panTo(targetCenter);
-      if (map.getLevel() !== 7) {
-        setTimeout(() => {
-          if (kakaoMapInstance.current) {
-            kakaoMapInstance.current.setLevel(7, { animate: true });
+      // 2. 레벨 7 기준의 정밀한 프로젝션 픽셀 오프셋(우측 가용 영역 중앙 배치) 계산
+      const applyOffsetPan = () => {
+        if (!kakaoMapInstance.current || !window.kakao) return;
+        const currentMap = kakaoMapInstance.current;
+        let targetCenter = markerLatLon;
+
+        if (isDesktop && currentMap.getProjection) {
+          try {
+            const proj = currentMap.getProjection();
+            const point = proj.pointFromCoords(markerLatLon);
+            // 좌측 총 점유 너비(약 816px)의 절반인 약 410px만큼 중심점을 좌측으로 오프셋
+            const offsetPoint = new window.kakao.maps.Point(point.x - 410, point.y);
+            targetCenter = proj.coordsFromPoint(offsetPoint);
+          } catch (e) {
+            targetCenter = markerLatLon;
           }
-        }, 150);
-      }
+        }
+        currentMap.panTo(targetCenter);
+      };
+
+      // 줌 애니메이션과 동기화하여 부드럽게 패닝 실행
+      applyOffsetPan();
+      setTimeout(applyOffsetPan, 100);
 
       let popupBadge = '<span class="bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">진행중</span>';
       if (selectedFestival.start_date > TODAY_STR) {
