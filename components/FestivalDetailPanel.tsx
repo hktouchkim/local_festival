@@ -12,11 +12,15 @@ import {
 interface FestivalDetailPanelProps {
   festival: Festival;
   onClose: () => void;
+  mobileMode?: 'half' | 'full';
+  onToggleMobileMode?: () => void;
 }
 
 export default function FestivalDetailPanel({
   festival,
   onClose,
+  mobileMode = 'half',
+  onToggleMobileMode,
 }: FestivalDetailPanelProps) {
   const [detailData, setDetailData] = useState<any>(festival);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
@@ -76,7 +80,22 @@ export default function FestivalDetailPanel({
   };
 
   return (
-    <div className="w-full md:w-[410px] md:max-w-[calc(100vw-450px)] max-h-[85vh] md:max-h-full bg-white/95 backdrop-blur-md rounded-t-2xl md:rounded-2xl border border-gray-200/90 shadow-2xl flex flex-col overflow-hidden h-full animate-fade-in relative z-30">
+    <div
+      className={`w-full md:w-[410px] md:max-w-[calc(100vw-450px)] bg-white/95 backdrop-blur-md rounded-t-2xl md:rounded-2xl border border-gray-200/90 shadow-2xl flex flex-col overflow-hidden animate-fade-in relative z-30 transition-all duration-300 ${
+        mobileMode === 'full' ? 'h-[92vh] md:h-full' : 'h-[60vh] md:h-full'
+      }`}
+    >
+      {/* 모바일 전용 상단 손잡이 바 (터치 시 60% <-> 92% 풀스크린 토글) */}
+      <div
+        onClick={onToggleMobileMode}
+        className="md:hidden pt-2.5 pb-1 flex flex-col items-center justify-center cursor-pointer select-none bg-white/95"
+      >
+        <div className="w-10 h-1 bg-gray-300 rounded-full mb-1" />
+        <span className="text-[10px] font-semibold text-gray-400">
+          {mobileMode === 'half' ? '쓸어올려 전체보기 ↑' : '내려서 지도보기 ↓'}
+        </span>
+      </div>
+
       {/* 1. 상단 바: 타이틀 및 닫기 버튼 */}
       <div className="p-3.5 border-b border-gray-100 bg-white/95 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-1.5 min-w-0 pr-2">
