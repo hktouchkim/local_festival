@@ -32,4 +32,8 @@ body {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+  /* 스크롤 유무와 상관없이 패널 내부 너비를 일정하게 고정하는 스크롤바 거터 */
+  .stable-scrollbar {
+    scrollbar-gutter: stable;
+  }
 }

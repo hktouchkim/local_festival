@@ -120,14 +120,23 @@ export default function InteractiveMap({
     isProgrammaticMoveRef.current = true;
     setShowRefreshBtn(false);
 
-    // 지도 인스턴스가 존재할 경우 최초 중심 좌표 및 줌 레벨로 리셋
+    // 지도 인스턴스가 존재할 경우 최초 중심 좌표 및 줌 레벨로 부드럽게 글라이딩 리셋
     if (kakaoMapInstance.current && window.kakao) {
       const map = kakaoMapInstance.current;
       const initialCenter = initialCenterRef.current || { lat: 36.3504, lng: 127.8845, level: 12 };
       const initialLatLon = new window.kakao.maps.LatLng(initialCenter.lat, initialCenter.lng);
 
-      map.setLevel(initialCenter.level, { animate: true });
+      // 먼저 중심 좌표로 부드럽게 패닝 이동
       map.panTo(initialLatLon);
+
+      // 레벨이 다른 경우 순차적으로 부드러운 줌아웃 애니메이션 적용
+      if (map.getLevel() !== initialCenter.level) {
+        setTimeout(() => {
+          if (kakaoMapInstance.current) {
+            kakaoMapInstance.current.setLevel(initialCenter.level, { animate: true });
+          }
+        }, 150);
+      }
 
       if (initialBoundsRef.current) {
         setAppliedBounds(initialBoundsRef.current);
@@ -365,10 +374,8 @@ export default function InteractiveMap({
       const targetLng = Number(selectedFestival.mapx);
       const markerLatLon = new window.kakao.maps.LatLng(targetLat, targetLng);
 
-      map.setLevel(7, { animate: true });
-
-      // PC 환경에서 좌측 패널(약 390px) + 이격 여백(16px) + 상세 패널(410px) = 총 너비 약 816px 노출 시
-      // 마커가 패널에 가려지지 않고 우측 가용 영역 정중앙에 오도록 오프셋 패닝
+      // 부드러운 카메라 이동을 위해 대상 위치로 먼저 panTo 이동 후(또는 동시) 부드럽게 레벨 조정
+      let targetCenter = markerLatLon;
       const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
       if (isDesktop && map.getProjection) {
         try {
@@ -376,13 +383,20 @@ export default function InteractiveMap({
           const point = proj.pointFromCoords(markerLatLon);
           // 좌측 총 점유 너비(약 816px)의 절반인 약 410px만큼 중심점을 좌측으로 오프셋 주어 마커를 잔여 우측 중앙에 배치
           const offsetPoint = new window.kakao.maps.Point(point.x - 410, point.y);
-          const newCenterCoords = proj.coordsFromPoint(offsetPoint);
-          map.panTo(newCenterCoords);
+          targetCenter = proj.coordsFromPoint(offsetPoint);
         } catch (e) {
-          map.panTo(markerLatLon);
+          targetCenter = markerLatLon;
         }
-      } else {
-        map.panTo(markerLatLon);
+      }
+
+      // 지도 레벨이 7이 아닌 경우 부드러운 애니메이션 적용 및 좌표 스무스 패닝
+      map.panTo(targetCenter);
+      if (map.getLevel() !== 7) {
+        setTimeout(() => {
+          if (kakaoMapInstance.current) {
+            kakaoMapInstance.current.setLevel(7, { animate: true });
+          }
+        }, 150);
       }
 
       let popupBadge = '<span class="bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">진행중</span>';
@@ -540,8 +554,8 @@ export default function InteractiveMap({
       >
         {/* 좌측 메인 검색 패널 컨테이너 (상/하/좌 여백 0px 밀착) */}
         <div className="flex items-stretch h-full">
-          {/* 패널 메인 바디 (너비 w-[390px], 상/하/좌 완전 밀착, overflow-y-auto) */}
-          <div className="w-[390px] bg-white border-r border-gray-200 shadow-xl flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 select-none">
+          {/* 패널 메인 바디 (너비 w-[390px], 상/하/좌 완전 밀착, overflow-y-auto, stable-scrollbar) */}
+          <div className="w-[390px] bg-white border-r border-gray-200 shadow-xl flex flex-col h-full overflow-y-auto stable-scrollbar scrollbar-thin scrollbar-thumb-gray-200 select-none">
             {/* [상단 고정 Sticky Header] 검색 결과 건수 + 초기화 버튼 + 검색어 입력창 */}
             <div className="sticky top-0 z-20 bg-white/98 backdrop-blur-md p-3.5 border-b border-gray-100 shadow-xs space-y-2.5">
               {/* 상단: 건수 + 검색 초기화 버튼 */}
