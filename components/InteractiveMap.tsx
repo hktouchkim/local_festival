@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Festival, SERVICE_TODAY } from '@/lib/data';
-import { Locate, Loader2, ChevronLeft, ChevronRight, MapPin, Search, X, RotateCcw } from 'lucide-react';
+import { Locate, Loader2, ChevronLeft, ChevronRight, MapPin, Search, X, RotateCcw, Check } from 'lucide-react';
 import FestivalDetailPanel from './FestivalDetailPanel';
 
 declare global {
