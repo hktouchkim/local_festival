@@ -628,9 +628,14 @@ export default function InteractiveMap({
     handleTouchStartYRef.current = null;
   };
 
-  // 2) 콘텐츠 내부 터치 제스처: 내부 스크롤이 갈 곳이 없을 때만 바텀시트 동작
+  // 2) 콘텐츠 내부 터치 제스처: "터치를 시작할 때부터 이미 맨 위(한계)였던 상태"에서 다시 아래로 쓸어내렸을 때만 시트 축소
+  const contentTouchStartScrollTopRef = useRef<number>(0);
+
   const onContentTouchStart = (e: React.TouchEvent) => {
     contentTouchStartYRef.current = e.touches[0].clientY;
+    if (sheetContentRef.current) {
+      contentTouchStartScrollTopRef.current = sheetContentRef.current.scrollTop;
+    }
   };
 
   const onContentTouchMove = (e: React.TouchEvent) => {
@@ -652,16 +657,18 @@ export default function InteractiveMap({
   const onContentTouchEnd = (e: React.TouchEvent) => {
     if (!contentTouchStartYRef.current || !sheetContentRef.current) return;
     const diffY = contentTouchStartYRef.current - e.changedTouches[0].clientY;
-    const { scrollTop, scrollHeight, clientHeight } = sheetContentRef.current;
+    const currentScrollTop = sheetContentRef.current.scrollTop;
 
     // 축소 상태(collapsed)일 때는 콘텐츠 내부에서 위로 쓸어올리면 풀페이지로 전환
     if (mobileSheetMode === 'collapsed' && diffY > 30) {
       setMobileSheetMode('expanded');
     }
     // 확장 상태(expanded)일 때:
+    // 반드시 "터치를 시작했던 시점(start)에도 맨 위(<= 0)"였고, "터치가 끝난 지금도 맨 위"인 상태에서만 축소
+    // 즉, 아래에서 위로 스크롤해서 탑에 도달한 연속 제스처에서는 절대 닫히지 않고,
+    // 이미 탑에 머물러 있는 상태에서 사용자가 다시 손을 대어 의도적으로 아래로 쓸어내렸을 때만 닫힘
     else if (mobileSheetMode === 'expanded') {
-      // 콘텐츠 영역 스크롤이 맨 위에 도달해 더 이상 위로 갈 곳이 없는데 아래로 쓸어내릴 경우 -> 바텀시트 축소
-      if (scrollTop <= 5 && diffY < -40) {
+      if (contentTouchStartScrollTopRef.current <= 0 && currentScrollTop <= 0 && diffY < -40) {
         setMobileSheetMode('collapsed');
       }
     }

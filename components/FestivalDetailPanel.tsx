@@ -81,10 +81,14 @@ export default function FestivalDetailPanel({
 
   // 모바일 상세 시트 스와이프 추적 Ref
   const detailTouchStartYRef = useRef<number | null>(null);
+  const detailTouchStartScrollTopRef = useRef<number>(0);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
 
   const handleDetailTouchStart = (e: React.TouchEvent) => {
     detailTouchStartYRef.current = e.touches[0].clientY;
+    if (detailScrollRef.current) {
+      detailTouchStartScrollTopRef.current = detailScrollRef.current.scrollTop;
+    }
   };
 
   const handleDetailTouchMove = (e: React.TouchEvent) => {
@@ -101,10 +105,13 @@ export default function FestivalDetailPanel({
   const handleDetailTouchEnd = (e: React.TouchEvent) => {
     if (detailTouchStartYRef.current === null) return;
     const diffY = detailTouchStartYRef.current - e.changedTouches[0].clientY;
+    const currentScrollTop = detailScrollRef.current ? detailScrollRef.current.scrollTop : 0;
+
     // 아래로 40px 이상 쓸어내렸을 때 -> 닫기 (검색시트 복귀)
-    // 단, 스크롤이 맨 위에 있을 때만 닫기 동작
+    // 조건: "터치를 시작할 때도 이미 맨 위(<= 0)"였고, "터치가 끝난 지금도 맨 위"인 상태에서 다시 아래로 쓸었을 때만 닫기 실행
+    // 스크롤하면서 탑에 닿았다고 바로 닫히는 현상 방지
     if (diffY < -40) {
-      if (!detailScrollRef.current || detailScrollRef.current.scrollTop <= 5) {
+      if (detailTouchStartScrollTopRef.current <= 0 && currentScrollTop <= 0) {
         onClose();
       }
     }
