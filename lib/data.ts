@@ -25,6 +25,7 @@ export interface Festival {
   bookingplace?: string;
   status: 'PUBLISHED' | 'HIDDEN';
   source: 'API' | 'MANUAL';
+  gallery_count?: number;
   created_at?: string;
   event_status?: 'ONGOING' | 'UPCOMING' | 'ENDED';
   d_day?: number;

@@ -95,6 +95,7 @@ export async function getFestivals(): Promise<Festival[]> {
       bookingplace: r.bookingplace,
       status: r.status as 'PUBLISHED' | 'HIDDEN',
       source: r.source as 'API' | 'MANUAL',
+      gallery_count: Number(r.gallery_count) || 0,
       created_at: r.created_at
     }));
   } catch (err) {

@@ -19,12 +19,12 @@ function HomeContent() {
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 검색 및 필터 상태
-  const [searchQuery, setSearchQuery] = useState('');
+  // 검색 및 필터 상태 (기본값: 한경 트래블 PICK)
+  const [searchQuery, setSearchQuery] = useState('한경 트래블 PICK');
   const [selectedPeriod, setSelectedPeriod] = useState('ALL');
-  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<string | null>('HOT');
   const [showOngoing, setShowOngoing] = useState(true);
-  const [showUpcoming, setShowUpcoming] = useState(false);
+  const [showUpcoming, setShowUpcoming] = useState(true);
   const [showEnded, setShowEnded] = useState(false);
   const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null);
 

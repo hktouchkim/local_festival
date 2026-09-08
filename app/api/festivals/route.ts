@@ -22,10 +22,10 @@ export async function GET(request: Request) {
   if (query) {
     const qLower = query.toLowerCase();
     if (qLower.includes('pick') || qLower.includes('한경') || qLower.includes('트래블') || qLower.includes('hot')) {
-      // 한경 트래블 PICK: 축제 소개 또는 주요 행사 프로그램에 데이터가 있는 축제 중 진행중 전체 + 진행예정
+      // 한경 트래블 PICK: (축제 소개 또는 주요 행사 프로그램에 데이터 존재) AND (갤러리 사진 1장 이상) 중 진행중 + 진행예정
       const withContent = list.filter(f => 
-        (f.overview && f.overview.trim().length > 0) ||
-        (f.program && f.program.trim().length > 0)
+        ((f.overview && f.overview.trim().length > 0) || (f.program && f.program.trim().length > 0)) &&
+        (Number(f.gallery_count) > 0)
       );
       const ongoing = withContent.filter(f => f.start_date <= todayStr && f.end_date >= todayStr);
       const upcoming = withContent.filter(f => f.start_date > todayStr);
@@ -80,10 +80,10 @@ export async function GET(request: Request) {
   const theme = searchParams.get('theme');
   if (theme) {
     if (theme === 'HOT') {
-      // 한경 트래블 PICK: 축제 소개 또는 주요 행사 프로그램에 데이터가 있는 축제 중 진행중 전체 + 진행예정
+      // 한경 트래블 PICK: (축제 소개 또는 주요 행사 프로그램에 데이터 존재) AND (갤러리 사진 1장 이상) 중 진행중 + 진행예정
       const withContent = list.filter(f => 
-        (f.overview && f.overview.trim().length > 0) ||
-        (f.program && f.program.trim().length > 0)
+        ((f.overview && f.overview.trim().length > 0) || (f.program && f.program.trim().length > 0)) &&
+        (Number(f.gallery_count) > 0)
       );
       const ongoing = withContent.filter(f => f.start_date <= todayStr && f.end_date >= todayStr);
       const upcoming = withContent.filter(f => f.start_date > todayStr);
