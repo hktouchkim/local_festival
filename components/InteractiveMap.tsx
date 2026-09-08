@@ -679,7 +679,7 @@ export default function InteractiveMap({
     <div className="w-full h-full relative overflow-hidden flex flex-col">
       {/* 내 위치 중심 이동 플로팅 버튼 (PC: 우측 하단, 모바일: 바텀시트 바로 위 우측) */}
       <div className={`absolute right-4 md:right-6 z-20 transition-all duration-300 ${
-        mobileSheetMode === 'expanded' ? 'bottom-[calc(100vh-60px)] hidden' : 'bottom-[32vh] md:bottom-6'
+        mobileSheetMode === 'expanded' ? 'bottom-[calc(100vh-60px)] hidden' : 'bottom-24 md:bottom-6'
       }`}>
         <button
           onClick={handleFindMyLocation}
@@ -1038,30 +1038,19 @@ export default function InteractiveMap({
       {/* ========================================================= */}
       <div
         className={`md:hidden fixed left-0 right-0 bottom-0 z-[60] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.18)] border-t border-gray-200 transition-all duration-300 flex flex-col ${
-          mobileSheetMode === 'expanded' ? 'h-[96dvh] top-[4dvh]' : 'h-[30vh]'
+          mobileSheetMode === 'expanded' ? 'h-[96dvh] top-[4dvh]' : 'h-[76px] overflow-hidden'
         }`}
       >
-        {/* 상단 서랍 손잡이 핸들바 (꼭지 버튼 영역 잡고 쓸어올리기/내리기 지원) */}
+        {/* 상단 서랍 손잡이 핸들바 (A안: 텍스트 삭제, 슬림한 중앙 드래그 바만 유지) */}
         <div
           onTouchStart={onHandleTouchStart}
           onTouchMove={onHandleTouchMove}
           onTouchEnd={onHandleTouchEnd}
           onClick={() => setMobileSheetMode(mobileSheetMode === 'collapsed' ? 'expanded' : 'collapsed')}
-          className="pt-3 pb-2.5 px-4 flex flex-col items-center justify-center cursor-pointer select-none bg-white border-b border-gray-100 flex-shrink-0 touch-none rounded-t-3xl"
+          className="pt-2.5 pb-2 px-4 flex flex-col items-center justify-center cursor-pointer select-none bg-white flex-shrink-0 touch-none rounded-t-3xl"
         >
           {/* 눈에 잘 띄는 중앙 드래그 핸들 */}
-          <div className="w-12 h-1.5 bg-gray-300 hover:bg-gray-400 rounded-full mb-1.5 transition" />
-          <div className="w-full flex items-center justify-between text-xs font-bold text-gray-800">
-            <span className="flex items-center gap-1.5">
-              <span>축제 검색 & 탐색</span>
-              <span className="bg-blue-50 text-[#0A2540] text-[10px] px-1.5 py-0.2 rounded font-extrabold border border-blue-200">
-                {visibleFestivals.length}
-              </span>
-            </span>
-            <span className="text-[11px] text-blue-600 font-semibold flex items-center gap-0.5">
-              {mobileSheetMode === 'collapsed' ? '펼치기 ↑' : '지도로 내려보기 ↓'}
-            </span>
-          </div>
+          <div className="w-10 h-1 bg-gray-300 hover:bg-gray-400 rounded-full transition" />
         </div>
 
         {/* 1. 검색창 (초기화 버튼 삭제, x 누르면 검색어 및 필터 초기화) */}
