@@ -28,8 +28,19 @@ export default function FestivalDetailPanel({
   const [copied, setCopied] = useState(false);
   const [showPosterModal, setShowPosterModal] = useState(false);
 
+  // 패널 본문 스크롤 및 모바일 제스처 추적 Ref
+  const detailScrollRef = useRef<HTMLDivElement | null>(null);
+  const detailTouchStartYRef = useRef<number | null>(null);
+  const detailTouchStartScrollTopRef = useRef<number>(0);
+
   useEffect(() => {
     let isCurrent = true;
+
+    // 축제가 변경될 때 상세 패널의 스크롤 위치를 최상단으로 즉시 리셋
+    if (detailScrollRef.current) {
+      detailScrollRef.current.scrollTop = 0;
+    }
+
     const fetchDetail = async () => {
       try {
         setLoading(true);
@@ -59,7 +70,7 @@ export default function FestivalDetailPanel({
 
   if (festival.start_date <= todayStr && festival.end_date >= todayStr) {
     badgeText = '진행 중';
-    badgeColor = 'bg-emerald-600 text-white';
+    badgeColor = 'bg-[#10b981] text-white';
   } else if (festival.start_date > todayStr) {
     const d = Math.ceil((new Date(festival.start_date).getTime() - new Date(todayStr).getTime()) / (1000 * 60 * 60 * 24));
     badgeText = d === 0 ? 'D-Day' : `D-${d}`;
@@ -78,11 +89,6 @@ export default function FestivalDetailPanel({
       });
     }
   };
-
-  // 모바일 상세 시트 스와이프 추적 Ref
-  const detailTouchStartYRef = useRef<number | null>(null);
-  const detailTouchStartScrollTopRef = useRef<number>(0);
-  const detailScrollRef = useRef<HTMLDivElement | null>(null);
 
   const handleDetailTouchStart = (e: React.TouchEvent) => {
     detailTouchStartYRef.current = e.touches[0].clientY;
