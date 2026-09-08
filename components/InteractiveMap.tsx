@@ -111,6 +111,7 @@ export default function InteractiveMap({
   };
 
   const [activeBannerIdx, setActiveBannerIdx] = useState(0);
+  const touchStartXRef = useRef<number | null>(null);
 
   // 롤링 배너 데이터 목록
   const THEME_BANNERS = [
@@ -143,13 +144,21 @@ export default function InteractiveMap({
     }
   ];
 
-  // 4초 간격 자동 롤링
+  // 4초 간격 자동 롤링 (사용자가 마우스를 올리거나 스와이프하지 않을 때 작동)
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveBannerIdx((prev) => (prev + 1) % THEME_BANNERS.length);
     }, 4000);
     return () => clearInterval(timer);
   }, [THEME_BANNERS.length]);
+
+  const handlePrevBanner = () => {
+    setActiveBannerIdx((prev) => (prev - 1 + THEME_BANNERS.length) % THEME_BANNERS.length);
+  };
+
+  const handleNextBanner = () => {
+    setActiveBannerIdx((prev) => (prev + 1) % THEME_BANNERS.length);
+  };
 
   // 추천 축제 큐레이션 클릭 시 검색어 입력란에 배너명을 채우고 결과 목록 갱신
   const handleThemeBannerClick = (themeKey: string, bannerTitle?: string) => {
@@ -701,61 +710,85 @@ export default function InteractiveMap({
 
             {/* 패널 내부 스크롤 콘텐츠 (롤링 배너 + 구분선 + 기간 칩 + 체크박스 + 결과 목록) */}
             <div className="p-3.5 space-y-3">
-              {/* 1단 롤링 추천 배너 (영역 타이틀 제거, 클릭 시 검색어 입력란에 배너명 주입) */}
-              <div className="relative group">
-                {THEME_BANNERS.map((item, idx) => {
-                  const isCurrent = activeBannerIdx === idx;
-                  const isSelected = selectedTheme === item.key;
-                  if (!isCurrent) return null;
+              {/* 1단 롤링 추천 배너 (도트 하단 분리, 스와이프 제스처 및 클릭 넘김 지원) */}
+              <div className="space-y-1.5">
+                <div
+                  className="relative group touch-pan-y"
+                  onTouchStart={(e) => {
+                    touchStartXRef.current = e.touches[0].clientX;
+                  }}
+                  onTouchEnd={(e) => {
+                    if (touchStartXRef.current === null) return;
+                    const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+                    if (diff > 40) handleNextBanner();
+                    else if (diff < -40) handlePrevBanner();
+                    touchStartXRef.current = null;
+                  }}
+                  onMouseDown={(e) => {
+                    touchStartXRef.current = e.clientX;
+                  }}
+                  onMouseUp={(e) => {
+                    if (touchStartXRef.current === null) return;
+                    const diff = touchStartXRef.current - e.clientX;
+                    if (diff > 40) handleNextBanner();
+                    else if (diff < -40) handlePrevBanner();
+                    touchStartXRef.current = null;
+                  }}
+                >
+                  {THEME_BANNERS.map((item, idx) => {
+                    const isCurrent = activeBannerIdx === idx;
+                    const isSelected = selectedTheme === item.key;
+                    if (!isCurrent) return null;
 
-                  return (
-                    <div
-                      key={item.key}
-                      onClick={() => handleThemeBannerClick(item.key, item.title)}
-                      className={`w-full p-2.5 rounded-xl cursor-pointer flex items-center justify-between transition-all duration-300 shadow-sm active:scale-[0.99] select-none ${
-                        item.bg
-                      } ${isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 pr-1">
-                        <span className="text-xl flex-shrink-0 drop-shadow-xs">{item.icon}</span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-extrabold text-xs text-white tracking-tight truncate">
-                              {item.title}
-                            </span>
-                            <span className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded ${item.badgeBg}`}>
-                              {item.badge}
-                            </span>
+                    return (
+                      <div
+                        key={item.key}
+                        onClick={() => handleThemeBannerClick(item.key, item.title)}
+                        className={`w-full p-2.5 rounded-xl cursor-pointer flex items-center justify-between transition-all duration-300 shadow-sm active:scale-[0.99] select-none ${
+                          item.bg
+                        } ${isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-1">
+                          <span className="text-xl flex-shrink-0 drop-shadow-xs">{item.icon}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-extrabold text-xs text-white tracking-tight truncate">
+                                {item.title}
+                              </span>
+                              <span className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded ${item.badgeBg}`}>
+                                {item.badge}
+                              </span>
+                            </div>
+                            <p className="text-[10.5px] text-white/90 truncate leading-tight font-medium mt-0.5">
+                              {item.desc}
+                            </p>
                           </div>
-                          <p className="text-[10.5px] text-white/90 truncate leading-tight font-medium mt-0.5">
-                            {item.desc}
-                          </p>
                         </div>
-                      </div>
 
-                      {/* 우측 인디케이터 및 화살표 */}
-                      <div className="flex items-center gap-1.5 flex-shrink-0 pl-1">
-                        <div className="flex items-center gap-1">
-                          {THEME_BANNERS.map((_, dotIdx) => (
-                            <button
-                              key={dotIdx}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveBannerIdx(dotIdx);
-                              }}
-                              className={`h-1.5 rounded-full transition-all ${
-                                activeBannerIdx === dotIdx ? 'w-3.5 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-transform font-bold">
+                        {/* 우측 간단 화살표 */}
+                        <div className="flex items-center flex-shrink-0 pl-1 text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-transform font-bold text-xs">
                           〉
-                        </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+
+                {/* 배너 하단 분리 배치된 인디케이터 도트 (직접 클릭 및 전환 가능) */}
+                <div className="flex items-center justify-center gap-1.5 py-0.5">
+                  {THEME_BANNERS.map((item, dotIdx) => (
+                    <button
+                      key={dotIdx}
+                      onClick={() => setActiveBannerIdx(dotIdx)}
+                      className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                        activeBannerIdx === dotIdx
+                          ? 'w-4 bg-[#0A2540]'
+                          : 'w-1.5 bg-gray-300 hover:bg-gray-400'
+                      }`}
+                      title={`${item.title} 보기`}
+                    />
+                  ))}
+                </div>
               </div>
 
               {/* 구분선 (배너와 기간 선택 사이 시각적 분리 강화) */}

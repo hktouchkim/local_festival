@@ -17,12 +17,26 @@ export async function GET(request: Request) {
     list = list.filter(f => f.status === 'PUBLISHED');
   }
 
-  // 2. 검색어 필터 (축제명 또는 주소)
+  // 2. 검색어 필터 (축제명 또는 주소, 또는 추천 테마 키워드 지원)
   if (query) {
-    list = list.filter(f => 
-      f.title.toLowerCase().includes(query) || 
-      (f.addr1 && f.addr1.toLowerCase().includes(query))
-    );
+    if (query.includes('hot') || query.includes('인기') || query.includes('hot 10')) {
+      list = list.filter(f => {
+        const isOngoingRecent = f.start_date <= todayStr && f.end_date >= todayStr && f.start_date >= '2026-08-15';
+        const isUpcomingNear = f.start_date > todayStr;
+        return isOngoingRecent || isUpcomingNear;
+      });
+    } else if (query.includes('뮤직') || query.includes('페스티벌')) {
+      const regex = /뮤직|락|재즈|콘서트|페스티벌|음악|버스킹|비어|맥주/i;
+      list = list.filter(f => regex.test(f.title) || (f.overview && regex.test(f.overview)));
+    } else if (query.includes('야간') || query.includes('빛')) {
+      const regex = /야간|빛|불꽃|달빛|밤|나이트|드론/i;
+      list = list.filter(f => regex.test(f.title) || (f.overview && regex.test(f.overview)));
+    } else {
+      list = list.filter(f => 
+        f.title.toLowerCase().includes(query) || 
+        (f.addr1 && f.addr1.toLowerCase().includes(query))
+      );
+    }
   }
 
   // 3. 지역 필터
