@@ -118,7 +118,7 @@ export default function InteractiveMap({
     {
       key: 'HOT',
       title: '한경 트래블 PICK',
-      desc: '행사 정보가 풍성한 엄선 추천 축제 컬렉션',
+      desc: '에디터가 엄선한 실패 없는 전국 대표 축제',
       badge: 'TRAVEL PICK',
       icon: '✨',
       bg: 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-900',
