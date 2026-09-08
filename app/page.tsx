@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import InteractiveMap from '@/components/InteractiveMap';
@@ -14,7 +14,7 @@ const PERIOD_TABS = [
 
 function HomeContent() {
   const searchParams = useSearchParams();
-  const initialFestivalId = searchParams.get('festivalId');
+  const initialFestivalIdRef = useRef<string | null>(searchParams.get('festivalId'));
 
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,14 +45,18 @@ function HomeContent() {
       if (data.success) {
         setFestivals(data.data);
 
-        // URL에 festivalId가 전달된 경우 해당 축제 자동 선택
-        if (initialFestivalId) {
-          const target = data.data.find((f: Festival) => f.id === initialFestivalId);
+        // 최초 진입 시 URL에 festivalId가 전달된 경우 1회 한정 해당 축제 자동 선택
+        if (initialFestivalIdRef.current) {
+          const fid = initialFestivalIdRef.current;
+          // 1회 처리 후 ref 비움 -> 이후 필터 초기화나 검색 변경 시 재선택되지 않도록 방지
+          initialFestivalIdRef.current = null;
+
+          const target = data.data.find((f: Festival) => f.id === fid);
           if (target) {
             setSelectedFestival(target);
           } else {
             // 목록 필터에 포함되지 않았더라도 단독 API로 가져와 선택
-            fetch(`/api/festivals/${initialFestivalId}`)
+            fetch(`/api/festivals/${fid}`)
               .then(r => r.json())
               .then(single => {
                 if (single.success && single.data) {
@@ -77,8 +81,12 @@ function HomeContent() {
     return () => clearTimeout(timer);
   }, [searchQuery, selectedPeriod, selectedTheme, showOngoing, showUpcoming, showEnded]);
 
-  // 검색 및 필터 전체 초기화 함수
+  // 검색 및 필터 전체 초기화 함수 (URL 쿼리 파라미터도 깨끗하게 제거하여 루트로 변경)
   const handleResetFilters = () => {
+    initialFestivalIdRef.current = null;
+    if (typeof window !== 'undefined' && window.history.pushState) {
+      window.history.pushState(null, '', window.location.pathname);
+    }
     setSearchQuery('');
     setSelectedPeriod('ALL');
     setSelectedTheme(null);

@@ -178,15 +178,21 @@ export default function InteractiveMap({
     setShowRefreshBtn(false);
 
     // 지도 인스턴스가 존재할 경우 최초 중심 좌표 및 줌 레벨로 부드럽게 글라이딩 리셋
+    resetMapToInitial();
+  };
+
+  // 지도 최초 전국(한반도) 뷰 및 초기 영역으로 부드럽게 글라이딩 리셋하는 공통 함수
+  const resetMapToInitial = () => {
+    isProgrammaticMoveRef.current = true;
+    setShowRefreshBtn(false);
+
     if (kakaoMapInstance.current && window.kakao) {
       const map = kakaoMapInstance.current;
       const initialCenter = initialCenterRef.current || { lat: 36.3504, lng: 127.8845, level: 12 };
       const initialLatLon = new window.kakao.maps.LatLng(initialCenter.lat, initialCenter.lng);
 
-      // 먼저 중심 좌표로 부드럽게 패닝 이동
       map.panTo(initialLatLon);
 
-      // 레벨이 다른 경우 순차적으로 부드러운 줌아웃 애니메이션 적용
       if (map.getLevel() !== initialCenter.level) {
         setTimeout(() => {
           if (kakaoMapInstance.current) {
@@ -730,7 +736,10 @@ export default function InteractiveMap({
                 />
                 {searchQuery && (
                   <button
-                    onClick={onResetFilters}
+                    onClick={() => {
+                      onResetFilters();
+                      resetMapToInitial();
+                    }}
                     className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-1"
                     title="검색어 지우기 및 필터 초기화"
                   >
@@ -1056,7 +1065,10 @@ export default function InteractiveMap({
             />
             {searchQuery && (
               <button
-                onClick={onResetFilters}
+                onClick={() => {
+                  onResetFilters();
+                  resetMapToInitial();
+                }}
                 className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-1.5"
                 title="검색어 지우기 및 필터 초기화"
               >
