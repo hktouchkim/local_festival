@@ -88,6 +88,8 @@ export default function InteractiveMap({
     maxLng: number;
   } | null>(null);
   const initialCenterRef = useRef<{ lat: number; lng: number; level: number } | null>(null);
+  // 서비스/프로그램에 의한 지도 자동 이동 여부 플래그 (사용자 직접 드래그/줌 조작 시에만 false)
+  const isProgrammaticMoveRef = useRef<boolean>(true);
 
   // 현재 지도가 위치한 실시간 영역 및 재검색 버튼 노출 여부
   const [currentBounds, setCurrentBounds] = useState<{
@@ -106,13 +108,17 @@ export default function InteractiveMap({
     setShowRefreshBtn(false);
   };
 
-  // 추천 축제 배너 클릭 시 지도 최초 위치 및 줌 레벨로 초기화하는 함수
+  // 추천 축제 큐레이션 클릭 시 지도 최초 위치 및 줌 레벨로 초기화하는 함수
   const handleThemeBannerClick = (themeKey: string) => {
     const nextTheme = selectedTheme === themeKey ? null : themeKey;
     setSelectedTheme(nextTheme);
 
     // 상세 패널이 열려있다면 닫기
     onSelectFestival(null);
+
+    // 프로그램 제어 이동 플래그 활성화 -> idle 이벤트 시 '현 지도에서 검색' 버튼 노출 억제
+    isProgrammaticMoveRef.current = true;
+    setShowRefreshBtn(false);
 
     // 지도 인스턴스가 존재할 경우 최초 중심 좌표 및 줌 레벨로 리셋
     if (kakaoMapInstance.current && window.kakao) {
@@ -127,7 +133,6 @@ export default function InteractiveMap({
         setAppliedBounds(initialBoundsRef.current);
         setCurrentBounds(initialBoundsRef.current);
       }
-      setShowRefreshBtn(false);
     }
   };
 
@@ -222,10 +227,15 @@ export default function InteractiveMap({
         };
         initialBoundsRef.current = initialBounds;
         initialCenterRef.current = { lat: 36.3504, lng: 127.8845, level: 12 };
-        setAppliedBounds(initialBounds);
-        setCurrentBounds(initialBounds);
+        // 사용자가 직접 지도를 드래그하거나 휠 줌을 조작할 때만 플래그 해제
+        window.kakao.maps.event.addListener(map, 'dragstart', () => {
+          isProgrammaticMoveRef.current = false;
+        });
+        window.kakao.maps.event.addListener(map, 'zoom_start', () => {
+          isProgrammaticMoveRef.current = false;
+        });
 
-        // 지도 이동/줌 완료 시(idle) 실시간 지도 영역 감지 -> '현 지도에서 검색' 버튼 노출
+        // 지도 이동/줌 완료 시(idle) 실시간 지도 영역 감지 -> 사용자가 직접 조작했을 때만 '현 지도에서 검색' 버튼 노출
         window.kakao.maps.event.addListener(map, 'idle', () => {
           const newBounds = map.getBounds();
           const newSw = newBounds.getSouthWest();
@@ -237,7 +247,13 @@ export default function InteractiveMap({
             maxLng: newNe.getLng()
           };
           setCurrentBounds(cur);
-          setShowRefreshBtn(true);
+
+          if (!isProgrammaticMoveRef.current) {
+            setShowRefreshBtn(true);
+          } else {
+            // 프로그램 제어 이동 완료 후 플래그 초기화
+            isProgrammaticMoveRef.current = false;
+          }
         });
 
         // 지도 빈 영역 클릭 시 상세 패널 닫기
@@ -568,77 +584,94 @@ export default function InteractiveMap({
               </div>
             </div>
 
-            {/* 패널 내부 스크롤 콘텐츠 (추천 배너 + 칩 + 체크박스 + 결과 목록) */}
+            {/* 패널 내부 스크롤 콘텐츠 (추천 큐레이션 + 칩 + 체크박스 + 결과 목록) */}
             <div className="p-3.5 space-y-3">
-              {/* 추천 배너 3종 */}
-              <div className="space-y-1.5">
-                {[
-                  {
-                    key: 'HOT',
-                    title: 'HOT 10 축제',
-                    desc: '지금 가장 주목받는 인기 축제',
-                    badge: '🔥 인기',
-                    bgGradient: 'from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100',
-                    activeBg: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-sm border-transparent',
-                    borderColor: 'border-amber-200/80',
-                    textColor: 'text-amber-950',
-                    descColor: 'text-amber-700'
-                  },
-                  {
-                    key: 'MUSIC',
-                    title: '뮤직 & 페스티벌',
-                    desc: '음악·공연·버스킹·락 축제',
-                    badge: '🎵 공연',
-                    bgGradient: 'from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100',
-                    activeBg: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm border-transparent',
-                    borderColor: 'border-blue-200/80',
-                    textColor: 'text-blue-950',
-                    descColor: 'text-blue-700'
-                  },
-                  {
-                    key: 'NIGHT',
-                    title: '야간 & 빛 축제',
-                    desc: '낭만 가득 불꽃·달빛·드론쇼',
-                    badge: '🌙 야경',
-                    bgGradient: 'from-purple-50 to-slate-100 hover:from-purple-100 hover:to-slate-200',
-                    activeBg: 'bg-gradient-to-r from-purple-700 to-[#0A2540] text-white shadow-sm border-transparent',
-                    borderColor: 'border-purple-200/80',
-                    textColor: 'text-purple-950',
-                    descColor: 'text-purple-700'
-                  }
-                ].map((item) => {
-                  const isActive = selectedTheme === item.key;
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => handleThemeBannerClick(item.key)}
-                      className={`w-full px-3 py-2 rounded-xl text-left transition border flex items-center justify-between ${
-                        isActive
-                          ? item.activeBg
-                          : `bg-gradient-to-r ${item.bgGradient} ${item.borderColor}`
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`font-extrabold text-xs tracking-tight ${isActive ? 'text-white' : item.textColor}`}>
-                            {item.title}
-                          </span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                            isActive ? 'bg-white/20 text-white' : 'bg-white/80 text-gray-700 border border-gray-200'
-                          }`}>
-                            {item.badge}
-                          </span>
+              {/* 에디터 픽: 맞춤 큐레이션 추천 축제 (A안 세로 셀렉터 형태) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-3.5 bg-[#0A2540] rounded-full" />
+                    <span className="font-extrabold text-xs text-gray-900 tracking-tight">에디터 맞춤 큐레이션</span>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-medium">테마 선택 시 결과 즉시 전환</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {[
+                    {
+                      key: 'HOT',
+                      title: 'HOT 10 축제',
+                      desc: '지금 가장 주목받는 전국 인기 축제 모음',
+                      badge: 'EDITOR PICK',
+                      badgeStyle: 'bg-amber-100 text-amber-800 border-amber-300',
+                      icon: '🔥',
+                      activeBorder: 'border-amber-500 ring-2 ring-amber-400/40 bg-gradient-to-r from-amber-50/90 to-orange-50/90',
+                      hoverBorder: 'hover:border-amber-300 hover:bg-amber-50/40'
+                    },
+                    {
+                      key: 'MUSIC',
+                      title: '뮤직 & 페스티벌',
+                      desc: '음악·공연·버스킹·락 축제 엄선 큐레이션',
+                      badge: 'LIVE STAGE',
+                      badgeStyle: 'bg-blue-100 text-blue-800 border-blue-300',
+                      icon: '🎵',
+                      activeBorder: 'border-blue-600 ring-2 ring-blue-500/40 bg-gradient-to-r from-blue-50/90 to-indigo-50/90',
+                      hoverBorder: 'hover:border-blue-300 hover:bg-blue-50/40'
+                    },
+                    {
+                      key: 'NIGHT',
+                      title: '야간 & 빛 축제',
+                      desc: '낭만 가득 불꽃·달빛·드론 야경 스팟',
+                      badge: 'NIGHT VIEW',
+                      badgeStyle: 'bg-purple-100 text-purple-800 border-purple-300',
+                      icon: '🌙',
+                      activeBorder: 'border-[#0A2540] ring-2 ring-slate-700/30 bg-gradient-to-r from-purple-50/90 to-slate-100/90',
+                      hoverBorder: 'hover:border-purple-300 hover:bg-purple-50/40'
+                    }
+                  ].map((item) => {
+                    const isActive = selectedTheme === item.key;
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => handleThemeBannerClick(item.key)}
+                        className={`w-full p-2.5 rounded-xl text-left transition-all duration-200 border bg-white shadow-2xs flex items-center justify-between cursor-pointer ${
+                          isActive
+                            ? item.activeBorder
+                            : `border-gray-200/90 ${item.hoverBorder}`
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5 min-w-0 pr-2">
+                          <span className="text-lg flex-shrink-0 mt-0.5">{item.icon}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-extrabold text-xs text-gray-900 tracking-tight truncate">
+                                {item.title}
+                              </span>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${item.badgeStyle}`}>
+                                {item.badge}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 mt-0.5 truncate leading-tight">
+                              {item.desc}
+                            </p>
+                          </div>
                         </div>
-                        <p className={`text-[11px] mt-0.5 ${isActive ? 'text-white/90' : item.descColor}`}>
-                          {item.desc}
-                        </p>
-                      </div>
-                      <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-gray-400'}`}>
-                        {isActive ? '✓ 적용중' : '→'}
-                      </span>
-                    </button>
-                  );
-                })}
+
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {isActive ? (
+                            <span className="inline-flex items-center gap-0.5 bg-[#0A2540] text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-2xs">
+                              선택됨 ✓
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-gray-400 group-hover:text-gray-700 flex items-center gap-0.5">
+                              결과보기 →
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* 퀵 기간 칩 (이번 주 반영) */}
