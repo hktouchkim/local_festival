@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Copy, Check, ExternalLink, Download } from 'lucide-react';
+import { marked } from 'marked';
 
 interface SpecClientViewProps {
   content: string;
@@ -10,11 +11,17 @@ interface SpecClientViewProps {
 export default function SpecClientView({ content }: SpecClientViewProps) {
   const [copied, setCopied] = useState(false);
 
+  // 마크다운 텍스트를 완벽한 시맨틱 HTML(h1, h2, ul, li, strong 등)로 파싱
+  const renderedHtml = useMemo(() => {
+    return marked.parse(content, { gfm: true, breaks: true }) as string;
+  }, [content]);
+
   const handleCopyForGoogleDocs = async () => {
     try {
       const container = document.getElementById('spec-doc-content');
       if (!container) return;
 
+      // 구글 문서가 가장 잘 인식하는 인라인 스타일이 입혀진 HTML 문자열 추출
       const htmlContent = container.innerHTML;
       const plainText = container.innerText;
 
@@ -27,16 +34,34 @@ export default function SpecClientView({ content }: SpecClientViewProps) {
         });
         await navigator.clipboard.write([item]);
       } else {
-        await navigator.clipboard.writeText(plainText);
+        // 구형 브라우저 대체 (Selection API)
+        const range = document.createRange();
+        range.selectNodeContents(container);
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+          document.execCommand('copy');
+          sel.removeAllRanges();
+        }
       }
 
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
     } catch (err) {
       console.error('Failed to copy', err);
+      // Fallback
       const container = document.getElementById('spec-doc-content');
       if (container) {
-        await navigator.clipboard.writeText(container.innerText);
+        const range = document.createRange();
+        range.selectNodeContents(container);
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(range);
+          document.execCommand('copy');
+          sel.removeAllRanges();
+        }
         setCopied(true);
         setTimeout(() => setCopied(false), 3000);
       }
@@ -53,7 +78,7 @@ export default function SpecClientView({ content }: SpecClientViewProps) {
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900">구글 문서(Google Docs) 바로 붙여넣기</h3>
-            <p className="text-xs text-slate-600 font-medium">아래 복사 버튼 클릭 후, 새 구글 문서에서 Cmd+V(Ctrl+V)를 누르면 완벽한 서식으로 들어갑니다.</p>
+            <p className="text-xs text-slate-600 font-medium">아래 복사 버튼 클릭 후, 새 구글 문서에서 Cmd+V(Ctrl+V)를 누르면 완벽한 서식(제목, 글머리기호, 볼드체)으로 붙여넣어집니다.</p>
           </div>
         </div>
 
@@ -102,15 +127,12 @@ export default function SpecClientView({ content }: SpecClientViewProps) {
         </div>
       </div>
 
-      {/* 서식 보존된 렌더링 뷰 (클립보드 추출용 HTML 타겟) */}
+      {/* 시맨틱 서식이 온전히 렌더링된 HTML 뷰 (구글 문서 복사 타겟) */}
       <article
         id="spec-doc-content"
-        className="bg-white rounded-2xl border border-gray-200 shadow-xs p-6 md:p-10 space-y-6 text-slate-900"
-      >
-        <div className="prose prose-slate max-w-none text-sm leading-relaxed whitespace-pre-wrap font-sans text-gray-800">
-          {content}
-        </div>
-      </article>
+        className="bg-white rounded-2xl border border-gray-200 shadow-xs p-6 md:p-10 space-y-4 text-slate-900 leading-relaxed font-sans"
+        dangerouslySetInnerHTML={{ __html: renderedHtml }}
+      />
     </div>
   );
 }
