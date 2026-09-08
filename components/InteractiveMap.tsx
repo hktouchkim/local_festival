@@ -73,13 +73,22 @@ export default function InteractiveMap({
   // 우측 플로팅 패널 접기/펼치기 상태 (기본값: 펼침)
   const [isPanelOpen, setIsPanelOpen] = useState(true);
 
-  // 현재 지도 화면(영역 Bounds) 좌표 범위 상태
-  const [mapBounds, setMapBounds] = useState<{
+  // 현재 필터링에 적용된 지도 영역(Bounds) 좌표 범위 상태
+  const [appliedBounds, setAppliedBounds] = useState<{
     minLat: number;
     maxLat: number;
     minLng: number;
     maxLng: number;
   } | null>(null);
+
+  // 현재 지도가 위치한 실시간 영역 및 재검색 버튼 노출 여부
+  const [currentBounds, setCurrentBounds] = useState<{
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+  } | null>(null);
+  const [showRefreshBtn, setShowRefreshBtn] = useState(false);
 
   // 카카오 지도 스크립트 동적 로드 및 맵 초기화
   useEffect(() => {
@@ -108,33 +117,30 @@ export default function InteractiveMap({
       script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&autoload=false&libraries=services,clusterer`;
       script.async = true;
 
-      script.onload = () => {
-        if (!window.kakao || !window.kakao.maps) {
-          if (isMounted) setErrorMsg('카카오 지도 객체를 초기화할 수 없습니다.');
-          return;
-        }
+      script.addEventListener('load', () => {
         window.kakao.maps.load(() => {
           if (isMounted) initKakaoMap();
         });
-      };
+      });
 
-      script.onerror = () => {
+      script.addEventListener('error', () => {
         if (isMounted) {
-          setErrorMsg('카카오 지도 SDK를 불러오지 못했습니다. 도메인 설정을 확인해주세요.');
+          setErrorMsg('카카오 지도 스크립트를 불러오는데 실패했습니다.');
         }
-      };
+      });
 
       document.head.appendChild(script);
     };
 
     const initKakaoMap = () => {
-      if (!mapRef.current || !window.kakao || !window.kakao.maps) return;
-
       try {
         const container = mapRef.current;
+        if (!container) return;
+
+        // 대한민국 중심 좌표 (약 대전 부근)
         const options = {
-          center: new window.kakao.maps.LatLng(36.1, 127.8), // 초기 한반도 중심 뷰
-          level: 12, // 기존 13에서 한 단계 확대
+          center: new window.kakao.maps.LatLng(36.3504, 127.8845),
+          level: 12,
         };
 
         const map = new window.kakao.maps.Map(container, options);
@@ -147,22 +153,33 @@ export default function InteractiveMap({
         const zoomControl = new window.kakao.maps.ZoomControl();
         map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
 
-        // 지도 영역(Bounds) 갱신 함수
-        const updateBounds = () => {
-          const bounds = map.getBounds();
-          const sw = bounds.getSouthWest();
-          const ne = bounds.getNorthEast();
-          setMapBounds({
-            minLat: sw.getLat(),
-            maxLat: ne.getLat(),
-            minLng: sw.getLng(),
-            maxLng: ne.getLng()
-          });
+        // 최초 로딩 시 지도 영역(Bounds) 가져와서 바로 적용
+        const bounds = map.getBounds();
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+        const initialBounds = {
+          minLat: sw.getLat(),
+          maxLat: ne.getLat(),
+          minLng: sw.getLng(),
+          maxLng: ne.getLng()
         };
+        setAppliedBounds(initialBounds);
+        setCurrentBounds(initialBounds);
 
-        // 지도 이동/줌 완료 시(idle) 실시간 지도 영역 갱신 이벤트 등록
-        window.kakao.maps.event.addListener(map, 'idle', updateBounds);
-        updateBounds();
+        // 지도 이동/줌 완료 시(idle) 실시간 지도 영역 감지 -> '현 지도에서 검색' 버튼 노출
+        window.kakao.maps.event.addListener(map, 'idle', () => {
+          const newBounds = map.getBounds();
+          const newSw = newBounds.getSouthWest();
+          const newNe = newBounds.getNorthEast();
+          const cur = {
+            minLat: newSw.getLat(),
+            maxLat: newNe.getLat(),
+            minLng: newSw.getLng(),
+            maxLng: newNe.getLng()
+          };
+          setCurrentBounds(cur);
+          setShowRefreshBtn(true);
+        });
 
         // 지도 빈 영역 클릭 시 상세 패널 닫기
         window.kakao.maps.event.addListener(map, 'click', () => {
@@ -275,15 +292,15 @@ export default function InteractiveMap({
 
       map.setLevel(7, { animate: true });
 
-      // PC 환경에서 2단 패널(검색패널+상세패널 총 너비 약 680~740px) 노출 시
-      // 마커가 패널에 가려지지 않도록 우측 가용 영역 중앙에 오도록 오프셋 패닝
+      // PC 환경에서 좌측 패널(약 390px) + 이격 여백(16px) + 상세 패널(410px) = 총 너비 약 816px 노출 시
+      // 마커가 패널에 가려지지 않고 우측 가용 영역 정중앙에 오도록 오프셋 패닝
       const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
       if (isDesktop && map.getProjection) {
         try {
           const proj = map.getProjection();
           const point = proj.pointFromCoords(markerLatLon);
-          // 좌측 2단 패널 너비(약 700px)의 절반인 약 350px만큼 중심점을 좌측으로 오프셋 주어 마커를 화면 우측에 배치
-          const offsetPoint = new window.kakao.maps.Point(point.x - 350, point.y);
+          // 좌측 총 점유 너비(약 816px)의 절반인 약 410px만큼 중심점을 좌측으로 오프셋 주어 마커를 잔여 우측 중앙에 배치
+          const offsetPoint = new window.kakao.maps.Point(point.x - 410, point.y);
           const newCenterCoords = proj.coordsFromPoint(offsetPoint);
           map.panTo(newCenterCoords);
         } catch (e) {
@@ -398,21 +415,29 @@ export default function InteractiveMap({
     );
   };
 
-  // 현재 지도 화면(mapBounds) 안에 실제로 들어와 있는 축제들만 실시간 필터링
+  // '현 지도에서 검색' 버튼 클릭 시 현재 보고 있는 영역을 적용하여 목록 갱신
+  const handleSearchInCurrentMap = () => {
+    if (currentBounds) {
+      setAppliedBounds(currentBounds);
+    }
+    setShowRefreshBtn(false);
+  };
+
+  // 현재 지도 화면(appliedBounds) 안에 실제로 들어와 있는 축제들만 필터링
   const visibleFestivals = useMemo(() => {
-    if (!mapBounds) return festivals;
+    if (!appliedBounds) return festivals;
     return festivals.filter(fest => {
       const lat = fest.mapy;
       const lng = fest.mapx;
       if (!lat || !lng) return false;
       return (
-        lat >= mapBounds.minLat &&
-        lat <= mapBounds.maxLat &&
-        lng >= mapBounds.minLng &&
-        lng <= mapBounds.maxLng
+        lat >= appliedBounds.minLat &&
+        lat <= appliedBounds.maxLat &&
+        lng >= appliedBounds.minLng &&
+        lng <= appliedBounds.maxLng
       );
     });
-  }, [festivals, mapBounds]);
+  }, [festivals, appliedBounds]);
 
   // 모바일 전용 전체화면 팝업 오버레이 상태
   const [isMobileOverlayOpen, setIsMobileOverlayOpen] = useState(false);
@@ -467,19 +492,19 @@ export default function InteractiveMap({
       </div>
 
       {/* ========================================================= */}
-      {/* 2. PC 전용: 지도 좌측 플로팅 필터 & 실시간 축제 검색결과 패널 (+ 2단 상세 패널) */}
+      {/* 2. PC 전용: 지도 좌측 풀하이트 검색 패널 + 우측 이격 플로팅 상세 패널 */}
       {/* ========================================================= */}
       <div
-        className={`hidden md:flex absolute top-3 left-3 bottom-3 z-30 transition-all duration-300 items-stretch gap-2.5 ${
+        className={`hidden md:flex absolute top-0 left-0 bottom-0 z-30 transition-all duration-300 items-start ${
           isPanelOpen ? 'translate-x-0' : '-translate-x-[calc(100%-36px)]'
         }`}
       >
-        {/* 패널 컨테이너: 메인 검색 패널 + 토글 버튼 */}
-        <div className="flex items-stretch">
-          {/* 패널 메인 바디 (모듈 전체 스크롤: overflow-y-auto) */}
-          <div className="w-80 lg:w-92 bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
-            {/* 패널 헤더: 검색어 입력 및 필터 */}
-            <div className="p-3.5 border-b border-gray-100 bg-white/90 space-y-2.5 flex-shrink-0">
+        {/* 좌측 메인 검색 패널 컨테이너 (상/하/좌 여백 0px 밀착) */}
+        <div className="flex items-stretch h-full">
+          {/* 패널 메인 바디 (너비 w-[390px], 상/하/좌 완전 밀착, overflow-y-auto) */}
+          <div className="w-[390px] bg-white border-r border-gray-200 shadow-xl flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 select-none">
+            {/* [상단 고정 Sticky Header] 검색 결과 건수 + 초기화 버튼 + 검색어 입력창 */}
+            <div className="sticky top-0 z-20 bg-white/98 backdrop-blur-md p-3.5 border-b border-gray-100 shadow-xs space-y-2.5">
               {/* 상단: 건수 + 검색 초기화 버튼 */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
@@ -491,7 +516,7 @@ export default function InteractiveMap({
                 {/* 우측 상단 검색/필터 초기화 버튼 */}
                 <button
                   onClick={onResetFilters}
-                  className="text-[11px] text-gray-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-md transition flex items-center gap-1 font-semibold"
+                  className="text-[11px] text-gray-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-md transition flex items-center gap-1 font-semibold cursor-pointer"
                   title="모든 검색어 및 필터 조건 초기화"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -499,7 +524,7 @@ export default function InteractiveMap({
                 </button>
               </div>
 
-              {/* 시인성 강화된 검색창 */}
+              {/* 시인성 강화된 검색창 (상단 고정으로 언제든 재검색 가능) */}
               <div className="relative">
                 <Search className="w-4 h-4 text-[#0A2540] absolute left-3 top-3 font-bold" />
                 <input
@@ -518,8 +543,11 @@ export default function InteractiveMap({
                   </button>
                 )}
               </div>
+            </div>
 
-              {/* 추천 배너 (추천목록 단어 삭제, 핫/뮤직/야간 3개만, 세로 나열 배너 디자인) */}
+            {/* 패널 내부 스크롤 콘텐츠 (추천 배너 + 칩 + 체크박스 + 결과 목록) */}
+            <div className="p-3.5 space-y-3">
+              {/* 추천 배너 3종 */}
               <div className="space-y-1.5">
                 {[
                   {
@@ -596,7 +624,7 @@ export default function InteractiveMap({
                   <button
                     key={tab.key}
                     onClick={() => setSelectedPeriod(tab.key)}
-                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition ${
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition ${
                       selectedPeriod === tab.key
                         ? 'bg-blue-50 text-[#0A2540] border border-blue-200 font-bold'
                         : 'bg-slate-100 text-gray-500 hover:bg-slate-200'
@@ -608,7 +636,7 @@ export default function InteractiveMap({
               </div>
 
               {/* 진행중 / 진행예정 / 종료 체크박스 필터 */}
-              <div className="flex items-center gap-2.5 pt-1.5 border-t border-gray-100 text-[11px]">
+              <div className="flex items-center gap-2.5 pt-1 border-t border-gray-100 text-[11px]">
                 <label className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-700 hover:text-black">
                   <input
                     type="checkbox"
@@ -643,110 +671,110 @@ export default function InteractiveMap({
                     className="w-3.5 h-3.5 rounded text-gray-500 border-gray-300 focus:ring-0 accent-gray-500"
                   />
                   <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                     종료
                   </span>
                 </label>
               </div>
-            </div>
 
-            {/* 패널 바디: 현재 지도 화면 내 축제 리스트 */}
-            <div className="p-2.5 space-y-2 divide-y divide-gray-50 flex-1">
-              {visibleFestivals.length === 0 ? (
-                <div className="py-12 flex flex-col items-center justify-center p-6 text-center text-gray-400 text-xs space-y-2">
-                  <MapPin className="w-8 h-8 text-gray-300 stroke-1" />
-                  <p>현재 지도 화면에 표시된 축제가 없습니다.</p>
-                  <p className="text-[11px] text-gray-400">지도를 축소하거나 다른 지역으로 이동해 보세요.</p>
-                </div>
-              ) : (
-                visibleFestivals.map((fest) => {
-                  const isSelected = selectedFestival?.id === fest.id;
-                  return (
-                    <div
-                      key={fest.id}
-                      onClick={() => onSelectFestival(fest)}
-                      className={`pt-2 first:pt-0 p-2 rounded-xl transition-all duration-150 cursor-pointer flex gap-2.5 ${
-                        isSelected
-                          ? 'bg-blue-50/80 border border-blue-200 shadow-xs'
-                          : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      {/* 축제 썸네일 */}
-                      <div className="w-16 h-16 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden relative">
-                        {fest.firstimage ? (
-                          <img
-                            src={fest.firstimage}
-                            alt={fest.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-[10px]">
-                            한경
-                          </div>
-                        )}
-                        {/* 상태/D-day 미니 뱃지 */}
-                        <div className="absolute top-1 left-1">
-                          {fest.start_date <= TODAY_STR && fest.end_date >= TODAY_STR ? (
-                            <span className="bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs flex items-center gap-0.5">
-                              <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
-                              진행중
-                            </span>
-                          ) : fest.start_date > TODAY_STR ? (
-                            <span className="bg-[#e83428] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs">
-                              {(() => {
-                                const d = Math.ceil((new Date(fest.start_date).getTime() - new Date(TODAY_STR).getTime()) / (1000 * 60 * 60 * 24));
-                                return d === 0 ? 'D-Day' : `D-${d}`;
-                              })()}
-                            </span>
+              {/* 검색 결과 목록 */}
+              <div className="space-y-2 pt-2 border-t border-gray-100">
+                {visibleFestivals.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 text-xs">
+                    <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-300 stroke-[1.5]" />
+                    <p className="font-semibold text-gray-600">검색 조건에 맞는 축제가 없습니다.</p>
+                    <p className="text-[11px] text-gray-400 mt-1">지도를 다른 지역으로 이동해보세요.</p>
+                  </div>
+                ) : (
+                  visibleFestivals.map((fest) => {
+                    const isSelected = selectedFestival?.id === fest.id;
+                    let badgeText = '진행 예정';
+                    let badgeColor = 'bg-[#e83428] text-white';
+
+                    if (fest.start_date <= TODAY_STR && fest.end_date >= TODAY_STR) {
+                      badgeText = '진행 중';
+                      badgeColor = 'bg-emerald-600 text-white';
+                    } else if (fest.start_date > TODAY_STR) {
+                      const d = Math.ceil((new Date(fest.start_date).getTime() - new Date(TODAY_STR).getTime()) / (1000 * 60 * 60 * 24));
+                      badgeText = d === 0 ? 'D-Day' : `D-${d}`;
+                      badgeColor = 'bg-[#e83428] text-white';
+                    } else if (fest.end_date < TODAY_STR) {
+                      badgeText = '종료';
+                      badgeColor = 'bg-slate-500 text-white';
+                    }
+
+                    return (
+                      <div
+                        key={fest.id}
+                        onClick={() => onSelectFestival(fest)}
+                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition flex gap-2.5 ${
+                          isSelected
+                            ? 'border-[#0A2540] bg-blue-50/50 shadow-sm ring-1 ring-[#0A2540]'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-slate-50/80 bg-white'
+                        }`}
+                      >
+                        {/* 축제 썸네일 */}
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden relative border border-gray-100">
+                          {fest.first_image ? (
+                            <img
+                              src={fest.first_image}
+                              alt={fest.title}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                            <span className="bg-slate-500 text-white text-[9px] font-medium px-1.5 py-0.5 rounded shadow-xs">
-                              종료
-                            </span>
+                            <div className="w-full h-full flex items-center justify-center text-gray-300 text-[10px]">
+                              No Img
+                            </div>
                           )}
                         </div>
-                      </div>
 
-                      {/* 축제 정보 */}
-                      <div className="flex-1 min-w-0 flex flex-col justify-between">
-                        <div>
-                          <h5 className="font-bold text-xs text-gray-900 truncate hover:text-blue-600">
-                            {fest.title}
-                          </h5>
-                          <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                            {fest.addr1 || '전국'}
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1">
-                          <span className="truncate">{fest.start_date} ~ {fest.end_date}</span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectFestival(fest);
-                            }}
-                            className="text-blue-600 font-semibold hover:underline flex-shrink-0 ml-1 cursor-pointer"
-                          >
-                            상세 →
-                          </button>
+                        {/* 축제 요약 정보 */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${badgeColor}`}>
+                                {badgeText}
+                              </span>
+                              <h4 className="font-bold text-xs text-gray-900 truncate flex-1">
+                                {fest.title}
+                              </h4>
+                            </div>
+                            <p className="text-[11px] text-gray-500 truncate mb-1">
+                              {fest.addr1 || '상세 주소 정보 없음'}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-gray-400">
+                            <span className="truncate">{fest.start_date} ~ {fest.end_date}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectFestival(fest);
+                              }}
+                              className="text-blue-600 font-semibold hover:underline flex-shrink-0 ml-1 cursor-pointer"
+                            >
+                              상세 →
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
+                    );
+                  })
+                )}
+              </div>
             </div>
 
             {/* 패널 푸터: 안내 */}
             <div className="p-2 border-t border-gray-100 bg-slate-50 text-[10px] text-gray-500 text-center flex-shrink-0">
-              지도를 움직이면 화면 안의 축제가 자동으로 갱신됩니다.
+              지도를 움직인 후 상단 '현 지도에서 검색'을 누르면 갱신됩니다.
             </div>
           </div>
 
-          {/* 접기/펼치기 토글 탭 버튼 (패널 우측에 위치: 2단 상세 패널 노출 시에는 어색함 방지를 위해 숨김 처리 - C안) */}
+          {/* 접기/펼치기 토글 탭 버튼 (패널 우측 경계선에 위치: 상세 패널 오픈 시 숨김) */}
           {!selectedFestival && (
             <button
               onClick={() => setIsPanelOpen(!isPanelOpen)}
-              className="w-9 h-14 bg-white/95 backdrop-blur-md self-center rounded-r-xl border border-l-0 border-gray-200 shadow-lg flex items-center justify-center text-gray-700 hover:text-black hover:bg-white transition flex-shrink-0"
+              className="w-8 h-14 bg-white self-center rounded-r-xl border border-l-0 border-gray-200 shadow-lg flex items-center justify-center text-gray-700 hover:text-black transition flex-shrink-0"
               title={isPanelOpen ? '목록 접기' : '축제 검색결과 펼치기'}
             >
               {isPanelOpen ? (
@@ -758,14 +786,29 @@ export default function InteractiveMap({
           )}
         </div>
 
-        {/* 2단 상세 패널 (네이버지도 스타일: 검색 모듈 우측에 동일 너비로 나란히 표시) */}
+        {/* 2단 상세 패널 (검색 패널 우측에서 16px 떨어져 살짝 둥근 카드로 플로팅) */}
         {selectedFestival && isPanelOpen && (
-          <FestivalDetailPanel
-            festival={selectedFestival}
-            onClose={() => onSelectFestival(null)}
-          />
+          <div className="h-full py-4 pl-4 flex items-center">
+            <FestivalDetailPanel
+              festival={selectedFestival}
+              onClose={() => onSelectFestival(null)}
+            />
+          </div>
         )}
       </div>
+
+      {/* 지도 상단 플로팅: '현 지도에서 검색' 버튼 (지도 이동 시 노출) */}
+      {showRefreshBtn && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+          <button
+            onClick={handleSearchInCurrentMap}
+            className="bg-[#0A2540] hover:bg-slate-900 text-white px-4 py-2 rounded-full shadow-2xl border border-white/20 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-amber-300 animate-spin-reverse" />
+            <span>현 지도에서 검색</span>
+          </button>
+        </div>
+      )}
 
       {/* 카카오맵이 마운트될 DOM 컨테이너 */}
       <div ref={mapRef} className="w-full h-full min-h-[500px] md:min-h-[560px] z-0" />
