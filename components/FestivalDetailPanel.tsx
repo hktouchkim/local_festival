@@ -122,16 +122,15 @@ export default function FestivalDetailPanel({
     <div
       className="w-full md:w-[410px] md:max-w-[calc(100vw-450px)] bg-white rounded-t-3xl md:rounded-2xl border border-gray-200/90 shadow-2xl flex flex-col overflow-hidden animate-fade-in relative z-30 transition-all duration-300 h-[95vh] md:h-full"
     >
-      {/* 모바일 전용 상단 꼭지 버튼/손잡이 영역 (쓸어내리면 닫혀서 검색시트 복귀) */}
+      {/* 모바일 전용 상단 꼭지 드래그바 영역 (A안 규격: 텍스트 없이 슬림 바만 유지, 쓸어내리면 닫혀서 검색시트 복귀) */}
       <div
         onTouchStart={handleDetailTouchStart}
         onTouchMove={handleDetailTouchMove}
         onTouchEnd={handleDetailTouchEnd}
         onClick={onClose}
-        className="md:hidden pt-3.5 pb-2.5 flex flex-col items-center justify-center cursor-pointer select-none bg-white border-b border-gray-100 flex-shrink-0 touch-none rounded-t-3xl"
+        className="md:hidden pt-3 pb-2 flex items-center justify-center cursor-pointer select-none bg-white border-b border-gray-100 flex-shrink-0 touch-none rounded-t-3xl"
       >
-        <div className="w-12 h-1.5 bg-gray-300 hover:bg-gray-400 rounded-full mb-1 transition" />
-        <span className="text-[10px] text-gray-400 font-semibold">내려서 닫기 ↓</span>
+        <div className="w-10 h-1 bg-gray-300 hover:bg-gray-400 rounded-full transition" />
       </div>
 
       {/* 1. 상단 바: 타이틀 및 닫기 버튼 */}
@@ -157,9 +156,10 @@ export default function FestivalDetailPanel({
               </span>
             )}
           </button>
+          {/* 닫기 버튼: PC에서만 노출 (모바일에서는 바텀시트 제스처로 닫음) */}
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-black hover:bg-gray-100 rounded-lg transition"
+            className="hidden md:inline-flex p-1 text-gray-400 hover:text-black hover:bg-gray-100 rounded-lg transition"
             title="상세 모듈 닫기"
           >
             <X className="w-4 h-4" />
