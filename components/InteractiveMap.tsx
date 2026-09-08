@@ -121,8 +121,10 @@ export default function InteractiveMap({
       desc: '행사 정보가 풍성한 엄선 추천 축제 컬렉션',
       badge: 'TRAVEL PICK',
       icon: '✨',
-      bg: 'bg-gradient-to-r from-blue-700 via-indigo-700 to-[#0A2540] text-white',
-      badgeBg: 'bg-black/25 text-amber-300 border border-white/20'
+      bg: 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-900',
+      badgeBg: 'bg-black/10 text-slate-900 font-black border border-black/10',
+      titleColor: 'text-slate-950',
+      descColor: 'text-slate-800'
     },
     {
       key: 'MUSIC',
@@ -131,7 +133,9 @@ export default function InteractiveMap({
       badge: 'LIVE STAGE',
       icon: '🎵',
       bg: 'bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white',
-      badgeBg: 'bg-black/25 text-blue-200 border border-white/20'
+      badgeBg: 'bg-black/25 text-blue-200 border border-white/20',
+      titleColor: 'text-white',
+      descColor: 'text-white/90'
     },
     {
       key: 'NIGHT',
@@ -140,7 +144,9 @@ export default function InteractiveMap({
       badge: 'NIGHT VIEW',
       icon: '🌙',
       bg: 'bg-gradient-to-r from-purple-800 via-indigo-900 to-[#0A2540] text-white',
-      badgeBg: 'bg-black/25 text-purple-200 border border-white/20'
+      badgeBg: 'bg-black/25 text-purple-200 border border-white/20',
+      titleColor: 'text-white',
+      descColor: 'text-white/90'
     }
   ];
 
@@ -152,13 +158,12 @@ export default function InteractiveMap({
     setActiveBannerIdx((prev) => (prev + 1) % THEME_BANNERS.length);
   };
 
-  // 추천 축제 큐레이션 클릭 시 검색어 입력란에 배너명을 채우고 결과 목록 갱신
+  // 추천 축제 큐레이션 클릭 시 검색어 입력란에 배너명을 채우고 결과 목록 갱신 (토글 해제 없이 항상 검색결과 적용)
   const handleThemeBannerClick = (themeKey: string, bannerTitle?: string) => {
-    const nextTheme = selectedTheme === themeKey ? null : themeKey;
-    setSelectedTheme(nextTheme);
+    setSelectedTheme(themeKey);
 
     // 검색어 입력란에 해당 배너명을 주입하여 사용자가 검색결과를 직관적으로 파악하도록 연동
-    if (nextTheme && bannerTitle) {
+    if (bannerTitle) {
       setSearchQuery(bannerTitle);
       if (themeKey === 'HOT') {
         // 한경 트래블 PICK: 진행중, 예정에 모두 체크 활성화, 종료는 비활성화
@@ -166,8 +171,6 @@ export default function InteractiveMap({
         setShowUpcoming(true);
         setShowEnded(false);
       }
-    } else {
-      setSearchQuery('');
     }
 
     // 상세 패널이 열려있다면 닫기
@@ -793,14 +796,14 @@ export default function InteractiveMap({
                           <span className="text-xl flex-shrink-0 drop-shadow-xs">{item.icon}</span>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-extrabold text-xs text-white tracking-tight truncate">
+                              <span className={`font-extrabold text-xs tracking-tight truncate ${item.titleColor}`}>
                                 {item.title}
                               </span>
                               <span className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded ${item.badgeBg}`}>
                                 {item.badge}
                               </span>
                             </div>
-                            <p className="text-[10.5px] text-white/90 truncate leading-tight font-medium mt-0.5">
+                            <p className={`text-[10.5px] truncate leading-tight font-medium mt-0.5 ${item.descColor}`}>
                               {item.desc}
                             </p>
                           </div>
@@ -1116,12 +1119,12 @@ export default function InteractiveMap({
                       <span className="text-lg">{item.icon}</span>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-extrabold text-xs tracking-tight truncate">{item.title}</span>
+                          <span className={`font-extrabold text-xs tracking-tight truncate ${item.titleColor}`}>{item.title}</span>
                           <span className={`text-[8.5px] font-bold px-1 rounded ${item.badgeBg}`}>
                             {item.badge}
                           </span>
                         </div>
-                        <p className="text-[10px] text-white/90 truncate mt-0.5">{item.desc}</p>
+                        <p className={`text-[10px] truncate mt-0.5 ${item.descColor}`}>{item.desc}</p>
                       </div>
                     </div>
                   </div>
