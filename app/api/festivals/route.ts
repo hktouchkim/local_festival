@@ -112,6 +112,48 @@ export async function GET(request: Request) {
     list = list.filter(f => f.start_date <= monthEnd && f.end_date >= monthStart);
   }
 
+  // 5. 정렬 정책 (A안: 진행중 우선 -> 진행예정 -> 종료순)
+  list.sort((a, b) => {
+    const isOngoingA = a.start_date <= todayStr && a.end_date >= todayStr;
+    const isOngoingB = b.start_date <= todayStr && b.end_date >= todayStr;
+    const isUpcomingA = a.start_date > todayStr;
+    const isUpcomingB = b.start_date > todayStr;
+    const isEndedA = a.end_date < todayStr;
+    const isEndedB = b.end_date < todayStr;
+
+    // 우선순위 점수 부여: 진행중(1순위: 0) -> 진행예정(2순위: 1) -> 종료(3순위: 2)
+    const getGroupScore = (isOg: boolean, isUc: boolean) => {
+      if (isOg) return 0;
+      if (isUc) return 1;
+      return 2;
+    };
+
+    const scoreA = getGroupScore(isOngoingA, isUpcomingA);
+    const scoreB = getGroupScore(isOngoingB, isUpcomingB);
+
+    if (scoreA !== scoreB) {
+      return scoreA - scoreB;
+    }
+
+    // 그룹 내 세부 정렬 기준
+    if (scoreA === 0) {
+      // 진행중 그룹: 마감 임박순 (end_date 오름차순, 동일 시 최신 개막순)
+      if (a.end_date !== b.end_date) {
+        return a.end_date.localeCompare(b.end_date);
+      }
+      return b.start_date.localeCompare(a.start_date);
+    } else if (scoreA === 1) {
+      // 진행예정 그룹: 개막 임박순 (start_date 오름차순)
+      if (a.start_date !== b.start_date) {
+        return a.start_date.localeCompare(b.start_date);
+      }
+      return a.end_date.localeCompare(b.end_date);
+    } else {
+      // 종료 그룹: 최근 종료순 (end_date 내림차순)
+      return b.end_date.localeCompare(a.end_date);
+    }
+  });
+
   return NextResponse.json({ success: true, count: list.length, data: list });
 }
 
