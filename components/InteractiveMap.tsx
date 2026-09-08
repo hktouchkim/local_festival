@@ -245,7 +245,7 @@ export default function InteractiveMap({
       { offset: new window.kakao.maps.Point(13, 33) }
     );
 
-    const newMarkers = festivals.map(fest => {
+    const newMarkers = visibleFestivals.map(fest => {
       const pos = new window.kakao.maps.LatLng(fest.mapy, fest.mapx);
 
       let markerImage = ongoingMarkerImg;
@@ -272,7 +272,7 @@ export default function InteractiveMap({
     });
 
     markersRef.current = newMarkers;
-  }, [festivals, isLoaded, onSelectFestival]);
+  }, [visibleFestivals, isLoaded, onSelectFestival]);
 
   // 선택된 축제 변경 시 줌인 및 말풍선 노출
   useEffect(() => {
@@ -327,20 +327,8 @@ export default function InteractiveMap({
           <span class="text-xs font-bold text-gray-900 truncate">${selectedFestival.title}</span>
         </div>
         <p class="text-[11px] text-gray-500 mb-1 truncate">${selectedFestival.addr1 || ''}</p>
-        <p class="text-[10px] text-blue-600 font-medium mb-2">${selectedFestival.start_date} ~ ${selectedFestival.end_date}</p>
-        <button type="button" id="kakao-overlay-detail-btn" class="w-full block text-center text-xs bg-[#0A2540] hover:bg-slate-800 text-white font-medium py-1.5 rounded-lg transition-colors cursor-pointer">
-          상세보기 →
-        </button>
+        <p class="text-[10px] text-blue-600 font-medium">${selectedFestival.start_date} ~ ${selectedFestival.end_date}</p>
       `;
-
-      const detailBtn = content.querySelector('#kakao-overlay-detail-btn');
-      if (detailBtn) {
-        detailBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          onSelectFestival(selectedFestival);
-        });
-      }
 
       const customOverlay = new window.kakao.maps.CustomOverlay({
         position: markerLatLon,
@@ -715,9 +703,9 @@ export default function InteractiveMap({
                       >
                         {/* 축제 썸네일 */}
                         <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden relative border border-gray-100">
-                          {fest.first_image ? (
+                          {(fest.firstimage || (fest as any).first_image) ? (
                             <img
-                              src={fest.first_image}
+                              src={fest.firstimage || (fest as any).first_image}
                               alt={fest.title}
                               className="w-full h-full object-cover"
                             />
