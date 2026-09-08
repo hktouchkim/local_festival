@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Festival } from '@/lib/data';
 import { SERVICE_TODAY } from '@/lib/data';
 import FestivalGallery, { GalleryImage } from '@/components/FestivalGallery';
