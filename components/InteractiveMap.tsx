@@ -110,10 +110,58 @@ export default function InteractiveMap({
     setShowRefreshBtn(false);
   };
 
-  // 추천 축제 큐레이션 클릭 시 지도 최초 위치 및 줌 레벨로 초기화하는 함수
-  const handleThemeBannerClick = (themeKey: string) => {
+  const [activeBannerIdx, setActiveBannerIdx] = useState(0);
+
+  // 롤링 배너 데이터 목록
+  const THEME_BANNERS = [
+    {
+      key: 'HOT',
+      title: 'HOT 10 축제',
+      desc: '지금 가장 주목받는 전국 인기 축제 모음',
+      badge: 'HOT PICK',
+      icon: '🔥',
+      bg: 'bg-gradient-to-r from-orange-600 via-amber-600 to-amber-700 text-white',
+      badgeBg: 'bg-black/25 text-amber-200 border border-white/20'
+    },
+    {
+      key: 'MUSIC',
+      title: '뮤직 & 페스티벌',
+      desc: '음악·공연·버스킹·락 축제 엄선 큐레이션',
+      badge: 'LIVE STAGE',
+      icon: '🎵',
+      bg: 'bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white',
+      badgeBg: 'bg-black/25 text-blue-200 border border-white/20'
+    },
+    {
+      key: 'NIGHT',
+      title: '야간 & 빛 축제',
+      desc: '낭만 가득 불꽃·달빛·드론 야경 스팟',
+      badge: 'NIGHT VIEW',
+      icon: '🌙',
+      bg: 'bg-gradient-to-r from-purple-800 via-indigo-900 to-[#0A2540] text-white',
+      badgeBg: 'bg-black/25 text-purple-200 border border-white/20'
+    }
+  ];
+
+  // 4초 간격 자동 롤링
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveBannerIdx((prev) => (prev + 1) % THEME_BANNERS.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [THEME_BANNERS.length]);
+
+  // 추천 축제 큐레이션 클릭 시 검색어 입력란에 배너명을 채우고 결과 목록 갱신
+  const handleThemeBannerClick = (themeKey: string, bannerTitle?: string) => {
     const nextTheme = selectedTheme === themeKey ? null : themeKey;
     setSelectedTheme(nextTheme);
+
+    // 검색어 입력란에 해당 배너명을 주입하여 사용자가 검색결과를 직관적으로 파악하도록 연동
+    if (nextTheme && bannerTitle) {
+      setSearchQuery(bannerTitle);
+    } else {
+      setSearchQuery('');
+    }
 
     // 상세 패널이 열려있다면 닫기
     onSelectFestival(null);
@@ -651,83 +699,67 @@ export default function InteractiveMap({
               </div>
             </div>
 
-            {/* 패널 내부 스크롤 콘텐츠 (추천 큐레이션 + 칩 + 체크박스 + 결과 목록) */}
+            {/* 패널 내부 스크롤 콘텐츠 (롤링 배너 + 구분선 + 기간 칩 + 체크박스 + 결과 목록) */}
             <div className="p-3.5 space-y-3">
-              {/* 한경 트레블 추천 (진한 색상과 카드 전체 클릭감) */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5 px-0.5">
-                  <span className="w-1.5 h-3.5 bg-[#0A2540] rounded-full" />
-                  <span className="font-extrabold text-xs text-gray-900 tracking-tight">한경 트레블 추천</span>
-                </div>
+              {/* 1단 롤링 추천 배너 (영역 타이틀 제거, 클릭 시 검색어 입력란에 배너명 주입) */}
+              <div className="relative group">
+                {THEME_BANNERS.map((item, idx) => {
+                  const isCurrent = activeBannerIdx === idx;
+                  const isSelected = selectedTheme === item.key;
+                  if (!isCurrent) return null;
 
-                <div className="space-y-2">
-                  {[
-                    {
-                      key: 'HOT',
-                      title: 'HOT 10 축제',
-                      desc: '지금 가장 주목받는 전국 인기 축제 모음',
-                      badge: 'HOT PICK',
-                      icon: '🔥',
-                      defaultBg: 'bg-gradient-to-r from-orange-600 via-amber-600 to-amber-700 text-white shadow-md hover:from-orange-700 hover:to-amber-800',
-                      activeBg: 'bg-gradient-to-r from-orange-700 to-amber-900 text-white ring-2 ring-offset-2 ring-orange-500 shadow-lg scale-[0.99]',
-                      badgeBg: 'bg-black/25 text-amber-200 border border-white/20'
-                    },
-                    {
-                      key: 'MUSIC',
-                      title: '뮤직 & 페스티벌',
-                      desc: '음악·공연·버스킹·락 축제 엄선 큐레이션',
-                      badge: 'LIVE STAGE',
-                      icon: '🎵',
-                      defaultBg: 'bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white shadow-md hover:from-blue-800 hover:to-indigo-900',
-                      activeBg: 'bg-gradient-to-r from-blue-800 to-indigo-950 text-white ring-2 ring-offset-2 ring-blue-500 shadow-lg scale-[0.99]',
-                      badgeBg: 'bg-black/25 text-blue-200 border border-white/20'
-                    },
-                    {
-                      key: 'NIGHT',
-                      title: '야간 & 빛 축제',
-                      desc: '낭만 가득 불꽃·달빛·드론 야경 스팟',
-                      badge: 'NIGHT VIEW',
-                      icon: '🌙',
-                      defaultBg: 'bg-gradient-to-r from-purple-800 via-indigo-900 to-[#0A2540] text-white shadow-md hover:from-purple-900 hover:to-[#071b30]',
-                      activeBg: 'bg-gradient-to-r from-purple-900 to-[#051424] text-white ring-2 ring-offset-2 ring-purple-400 shadow-lg scale-[0.99]',
-                      badgeBg: 'bg-black/25 text-purple-200 border border-white/20'
-                    }
-                  ].map((item) => {
-                    const isActive = selectedTheme === item.key;
-                    return (
-                      <button
-                        key={item.key}
-                        onClick={() => handleThemeBannerClick(item.key)}
-                        className={`w-full p-3 rounded-xl text-left transition-all duration-200 cursor-pointer flex items-center justify-between group active:scale-[0.98] ${
-                          isActive ? item.activeBg : item.defaultBg
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0 pr-1">
-                          <span className="text-xl flex-shrink-0 drop-shadow-sm">{item.icon}</span>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-extrabold text-xs text-white tracking-tight truncate drop-shadow-xs">
-                                {item.title}
-                              </span>
-                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${item.badgeBg}`}>
-                                {item.badge}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-white/85 mt-0.5 truncate leading-tight font-medium">
-                              {item.desc}
-                            </p>
+                  return (
+                    <div
+                      key={item.key}
+                      onClick={() => handleThemeBannerClick(item.key, item.title)}
+                      className={`w-full p-2.5 rounded-xl cursor-pointer flex items-center justify-between transition-all duration-300 shadow-sm active:scale-[0.99] select-none ${
+                        item.bg
+                      } ${isSelected ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-1">
+                        <span className="text-xl flex-shrink-0 drop-shadow-xs">{item.icon}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-extrabold text-xs text-white tracking-tight truncate">
+                              {item.title}
+                            </span>
+                            <span className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded ${item.badgeBg}`}>
+                              {item.badge}
+                            </span>
                           </div>
+                          <p className="text-[10.5px] text-white/90 truncate leading-tight font-medium mt-0.5">
+                            {item.desc}
+                          </p>
                         </div>
+                      </div>
 
-                        {/* 우측 영역: 별도 버튼 없이 카드 전체 클릭 유도 화살표 */}
-                        <div className="flex items-center flex-shrink-0 pl-1 text-white/60 group-hover:text-white transition-transform group-hover:translate-x-0.5">
-                          <span className="text-xs font-bold">〉</span>
+                      {/* 우측 인디케이터 및 화살표 */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0 pl-1">
+                        <div className="flex items-center gap-1">
+                          {THEME_BANNERS.map((_, dotIdx) => (
+                            <button
+                              key={dotIdx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveBannerIdx(dotIdx);
+                              }}
+                              className={`h-1.5 rounded-full transition-all ${
+                                activeBannerIdx === dotIdx ? 'w-3.5 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
+                              }`}
+                            />
+                          ))}
                         </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                        <span className="text-xs text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-transform font-bold">
+                          〉
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+
+              {/* 구분선 (배너와 기간 선택 사이 시각적 분리 강화) */}
+              <div className="border-t border-gray-200/80 my-1" />
 
               {/* 퀵 기간 칩 (이번 주 반영) */}
               <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
