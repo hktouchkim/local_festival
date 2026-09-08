@@ -81,6 +81,14 @@ export default function InteractiveMap({
     maxLng: number;
   } | null>(null);
 
+  const initialBoundsRef = useRef<{
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+  } | null>(null);
+  const initialCenterRef = useRef<{ lat: number; lng: number; level: number } | null>(null);
+
   // 현재 지도가 위치한 실시간 영역 및 재검색 버튼 노출 여부
   const [currentBounds, setCurrentBounds] = useState<{
     minLat: number;
@@ -96,6 +104,31 @@ export default function InteractiveMap({
       setAppliedBounds(currentBounds);
     }
     setShowRefreshBtn(false);
+  };
+
+  // 추천 축제 배너 클릭 시 지도 최초 위치 및 줌 레벨로 초기화하는 함수
+  const handleThemeBannerClick = (themeKey: string) => {
+    const nextTheme = selectedTheme === themeKey ? null : themeKey;
+    setSelectedTheme(nextTheme);
+
+    // 상세 패널이 열려있다면 닫기
+    onSelectFestival(null);
+
+    // 지도 인스턴스가 존재할 경우 최초 중심 좌표 및 줌 레벨로 리셋
+    if (kakaoMapInstance.current && window.kakao) {
+      const map = kakaoMapInstance.current;
+      const initialCenter = initialCenterRef.current || { lat: 36.3504, lng: 127.8845, level: 12 };
+      const initialLatLon = new window.kakao.maps.LatLng(initialCenter.lat, initialCenter.lng);
+
+      map.setLevel(initialCenter.level, { animate: true });
+      map.panTo(initialLatLon);
+
+      if (initialBoundsRef.current) {
+        setAppliedBounds(initialBoundsRef.current);
+        setCurrentBounds(initialBoundsRef.current);
+      }
+      setShowRefreshBtn(false);
+    }
   };
 
   // 현재 지도 화면(appliedBounds) 안에 실제로 들어와 있는 축제들만 필터링
@@ -177,7 +210,7 @@ export default function InteractiveMap({
         const zoomControl = new window.kakao.maps.ZoomControl();
         map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
 
-        // 최초 로딩 시 지도 영역(Bounds) 가져와서 바로 적용
+        // 최초 로딩 시 지도 영역(Bounds) 및 중심 좌표/레벨 가져와서 바로 저장 및 적용
         const bounds = map.getBounds();
         const sw = bounds.getSouthWest();
         const ne = bounds.getNorthEast();
@@ -187,6 +220,8 @@ export default function InteractiveMap({
           minLng: sw.getLng(),
           maxLng: ne.getLng()
         };
+        initialBoundsRef.current = initialBounds;
+        initialCenterRef.current = { lat: 36.3504, lng: 127.8845, level: 12 };
         setAppliedBounds(initialBounds);
         setCurrentBounds(initialBounds);
 
@@ -576,7 +611,7 @@ export default function InteractiveMap({
                   return (
                     <button
                       key={item.key}
-                      onClick={() => setSelectedTheme(isActive ? null : item.key)}
+                      onClick={() => handleThemeBannerClick(item.key)}
                       className={`w-full px-3 py-2 rounded-xl text-left transition border flex items-center justify-between ${
                         isActive
                           ? item.activeBg
