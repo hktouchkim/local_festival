@@ -272,13 +272,17 @@ export default function InteractiveMap({
     const initKakaoMap = () => {
       try {
         const container = mapRef.current;
-        // 대한민국 중심 좌표 (PC 좌측 390px 고정 패널을 감안하여 지도 중심 보정)
+        // 대한민국 중심 좌표 (PC 좌측 390px 고정 패널 및 모바일 하단 88px 바텀시트를 감안하여 뷰포트 최적화)
         const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
-        // PC 화면에서는 좌측 390px 패널 너비만큼 한반도가 좌측으로 치우쳐 보이지 않도록 중심 경도를 서쪽으로 살짝 이동하여 가시 영역 정중앙에 배치
+        // PC: 좌측 390px 패널 너비를 감안하여 중심 경도를 서쪽으로 살짝 이동
+        // 모바일: 하단 바텀시트에 남부/제주가 가려지지 않도록 중심 위도를 남쪽(35.75)으로 내리고 줌 레벨을 13으로 최적화
+        const centerLat = isDesktop ? 36.3504 : 35.75;
         const centerLng = isDesktop ? 127.35 : 127.8845;
+        const initialLevel = isDesktop ? 12 : 13;
+
         const options = {
-          center: new window.kakao.maps.LatLng(36.3504, centerLng),
-          level: 12,
+          center: new window.kakao.maps.LatLng(centerLat, centerLng),
+          level: initialLevel,
         };
 
         const map = new window.kakao.maps.Map(container, options);
@@ -302,7 +306,7 @@ export default function InteractiveMap({
           maxLng: ne.getLng()
         };
         initialBoundsRef.current = initialBounds;
-        initialCenterRef.current = { lat: 36.3504, lng: centerLng, level: 12 };
+        initialCenterRef.current = { lat: centerLat, lng: centerLng, level: initialLevel };
         // 사용자가 직접 지도를 드래그하거나 휠 줌을 조작할 때만 플래그 해제
         window.kakao.maps.event.addListener(map, 'dragstart', () => {
           isProgrammaticMoveRef.current = false;
