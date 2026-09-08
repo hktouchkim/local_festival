@@ -257,11 +257,12 @@ export default function InteractiveMap({
     const initKakaoMap = () => {
       try {
         const container = mapRef.current;
-        if (!container) return;
-
-        // 대한민국 중심 좌표 (약 대전 부근)
+        // 대한민국 중심 좌표 (PC 좌측 390px 고정 패널을 감안하여 지도 중심 보정)
+        const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+        // PC 화면에서는 좌측 390px 패널 너비만큼 한반도가 좌측으로 치우쳐 보이지 않도록 중심 경도를 서쪽으로 살짝 이동하여 가시 영역 정중앙에 배치
+        const centerLng = isDesktop ? 127.35 : 127.8845;
         const options = {
-          center: new window.kakao.maps.LatLng(36.3504, 127.8845),
+          center: new window.kakao.maps.LatLng(36.3504, centerLng),
           level: 12,
         };
 
@@ -286,7 +287,7 @@ export default function InteractiveMap({
           maxLng: ne.getLng()
         };
         initialBoundsRef.current = initialBounds;
-        initialCenterRef.current = { lat: 36.3504, lng: 127.8845, level: 12 };
+        initialCenterRef.current = { lat: 36.3504, lng: centerLng, level: 12 };
         // 사용자가 직접 지도를 드래그하거나 휠 줌을 조작할 때만 플래그 해제
         window.kakao.maps.event.addListener(map, 'dragstart', () => {
           isProgrammaticMoveRef.current = false;
@@ -703,15 +704,11 @@ export default function InteractiveMap({
       </div>
 
       {/* ========================================================= */}
-      {/* 2. PC 전용: 지도 좌측 풀하이트 검색 패널 + 우측 이격 플로팅 상세 패널 */}
+      {/* 2. PC 전용: 지도 좌측 풀하이트 검색 패널 + 우측 이격 플로팅 상세 패널 (상시 고정) */}
       {/* ========================================================= */}
-      <div
-        className={`hidden md:flex absolute top-0 left-0 bottom-0 z-30 transition-all duration-300 items-start ${
-          isPanelOpen ? 'translate-x-0' : '-translate-x-[calc(100%-36px)]'
-        }`}
-      >
-        {/* 좌측 메인 검색 패널 컨테이너 (상/하/좌 여백 0px 밀착) */}
-        <div className="flex items-stretch h-full">
+      <div className="hidden md:flex absolute top-0 left-0 bottom-0 z-30 items-start pointer-events-none">
+        {/* 좌측 메인 검색 패널 컨테이너 (상/하/좌 여백 0px 밀착, 상시 고정) */}
+        <div className="flex items-stretch h-full pointer-events-auto">
           {/* 패널 메인 바디 (너비 w-[390px], 상/하/좌 완전 밀착, overflow-y-auto, stable-scrollbar) */}
           <div className="w-[390px] bg-white border-r border-gray-200 shadow-xl flex flex-col h-full overflow-y-auto stable-scrollbar scrollbar-thin scrollbar-thumb-gray-200 select-none">
             {/* 1. 검색창 (초기화 버튼 삭제, 입력 내용이 있을 때 x 누르면 검색어 및 필터 전체 초기화) */}
@@ -815,27 +812,33 @@ export default function InteractiveMap({
                 </div>
               </div>
 
-              {/* 3. 텍스트로 검색결과 안내 -> 총 ㅇㅇ개의 축제가 있습니다. */}
-              <div className="pt-1 border-t border-gray-100 flex items-center justify-between text-xs text-gray-700">
-                <span className="font-medium">
-                  총 <span className="font-extrabold text-[#0A2540] text-sm">{visibleFestivals.length}</span>개의 축제가 있습니다.
+              {/* 3. 텍스트로 검색결과 안내 문구 */}
+              <div className="pt-0.5 text-xs font-bold text-gray-700 flex items-center justify-between">
+                <span>
+                  총 <span className="text-blue-600 font-extrabold">{visibleFestivals.length}</span>개의 축제가 있습니다.
                 </span>
               </div>
 
-              {/* 5. 진행중, 진행예정, 종료 -> 복수선택 on/off가 되는 캡슐 형태 */}
+              {/* 5. 진행중, 예정, 종료 -> 라디오 버튼 (단일 선택) */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setShowOngoing(!showOngoing)}
+                  onClick={() => {
+                    setShowOngoing(true);
+                    setShowUpcoming(false);
+                    setShowEnded(false);
+                  }}
                   className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                     showOngoing
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-400 ring-2 ring-emerald-200/50 shadow-xs'
                       : 'bg-slate-100 text-gray-400 border-transparent hover:bg-slate-200/70'
                   }`}
                 >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      showOngoing ? 'bg-emerald-500' : 'bg-gray-300'
+                    className={`w-2 h-2 rounded-full border ${
+                      showOngoing
+                        ? 'bg-emerald-500 border-white ring-1 ring-emerald-500'
+                        : 'bg-gray-300 border-transparent'
                     }`}
                   />
                   <span>진행중</span>
@@ -843,33 +846,45 @@ export default function InteractiveMap({
 
                 <button
                   type="button"
-                  onClick={() => setShowUpcoming(!showUpcoming)}
+                  onClick={() => {
+                    setShowOngoing(false);
+                    setShowUpcoming(true);
+                    setShowEnded(false);
+                  }}
                   className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                     showUpcoming
-                      ? 'bg-rose-50 text-[#e83428] border-rose-300 shadow-xs'
+                      ? 'bg-rose-50 text-[#e83428] border-rose-400 ring-2 ring-rose-200/50 shadow-xs'
                       : 'bg-slate-100 text-gray-400 border-transparent hover:bg-slate-200/70'
                   }`}
                 >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      showUpcoming ? 'bg-[#e83428]' : 'bg-gray-300'
+                    className={`w-2 h-2 rounded-full border ${
+                      showUpcoming
+                        ? 'bg-[#e83428] border-white ring-1 ring-[#e83428]'
+                        : 'bg-gray-300 border-transparent'
                     }`}
                   />
-                  <span>진행예정</span>
+                  <span>예정</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setShowEnded(!showEnded)}
+                  onClick={() => {
+                    setShowOngoing(false);
+                    setShowUpcoming(false);
+                    setShowEnded(true);
+                  }}
                   className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                     showEnded
-                      ? 'bg-slate-200/80 text-gray-800 border-slate-300 shadow-xs'
+                      ? 'bg-slate-200 text-gray-800 border-slate-400 ring-2 ring-slate-300/60 shadow-xs'
                       : 'bg-slate-100 text-gray-400 border-transparent hover:bg-slate-200/70'
                   }`}
                 >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      showEnded ? 'bg-gray-600' : 'bg-gray-300'
+                    className={`w-2 h-2 rounded-full border ${
+                      showEnded
+                        ? 'bg-gray-700 border-white ring-1 ring-gray-700'
+                        : 'bg-gray-300 border-transparent'
                     }`}
                   />
                   <span>종료</span>
@@ -886,7 +901,6 @@ export default function InteractiveMap({
                   </div>
                 ) : (
                   visibleFestivals.map((fest) => {
-                    const isSelected = selectedFestival?.id === fest.id;
                     let badgeText = '진행 예정';
                     let badgeColor = 'bg-[#e83428] text-white';
 
@@ -894,8 +908,7 @@ export default function InteractiveMap({
                       badgeText = '진행 중';
                       badgeColor = 'bg-emerald-600 text-white';
                     } else if (fest.start_date > TODAY_STR) {
-                      const d = Math.ceil((new Date(fest.start_date).getTime() - new Date(TODAY_STR).getTime()) / (1000 * 60 * 60 * 24));
-                      badgeText = d === 0 ? 'D-Day' : `D-${d}`;
+                      badgeText = '예정';
                       badgeColor = 'bg-[#e83428] text-white';
                     } else if (fest.end_date < TODAY_STR) {
                       badgeText = '종료';
@@ -906,14 +919,14 @@ export default function InteractiveMap({
                       <div
                         key={fest.id}
                         onClick={() => onSelectFestival(fest)}
-                        className={`p-2.5 rounded-xl border text-left cursor-pointer transition flex gap-2.5 ${
-                          isSelected
-                            ? 'border-[#0A2540] bg-blue-50/50 shadow-sm ring-1 ring-[#0A2540]'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-slate-50/80 bg-white'
+                        className={`p-2.5 rounded-xl border transition cursor-pointer flex gap-2.5 items-center ${
+                          selectedFestival?.id === fest.id
+                            ? 'border-blue-500 bg-blue-50/50 shadow-xs ring-1 ring-blue-500'
+                            : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-slate-50/70'
                         }`}
                       >
-                        {/* 축제 썸네일 */}
-                        <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden relative border border-gray-100">
+                        {/* 썸네일 이미지 */}
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100">
                           {(fest.firstimage || (fest as any).first_image) ? (
                             <img
                               src={fest.firstimage || (fest as any).first_image}
@@ -942,18 +955,8 @@ export default function InteractiveMap({
                               {fest.addr1 || '상세 주소 정보 없음'}
                             </p>
                           </div>
-                          <div className="flex items-center justify-between text-[10px] text-gray-400">
+                          <div className="text-[10px] text-gray-400">
                             <span className="truncate">{fest.start_date} ~ {fest.end_date}</span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectFestival(fest);
-                              }}
-                              className="text-blue-600 font-semibold hover:underline flex-shrink-0 ml-1 cursor-pointer"
-                            >
-                              상세 →
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -968,26 +971,11 @@ export default function InteractiveMap({
               지도를 움직인 후 상단 '현 지도에서 검색'을 누르면 갱신됩니다.
             </div>
           </div>
-
-          {/* 접기/펼치기 토글 탭 버튼 (패널 우측 경계선에 위치: 상세 패널 오픈 시 숨김) */}
-          {!selectedFestival && (
-            <button
-              onClick={() => setIsPanelOpen(!isPanelOpen)}
-              className="w-8 h-14 bg-white self-center rounded-r-xl border border-l-0 border-gray-200 shadow-lg flex items-center justify-center text-gray-700 hover:text-black transition flex-shrink-0"
-              title={isPanelOpen ? '목록 접기' : '축제 검색결과 펼치기'}
-            >
-              {isPanelOpen ? (
-                <ChevronLeft className="w-5 h-5" />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-blue-600" />
-              )}
-            </button>
-          )}
         </div>
 
-        {/* 2단 상세 패널 (검색 패널 우측에서 16px 떨어져 살짝 둥근 카드로 플로팅) */}
-        {selectedFestival && isPanelOpen && (
-          <div className="h-full py-4 pl-4 flex items-center">
+        {/* 2단 상세 패널 (검색 패널 우측에서 16px 떨어져 살짝 둥근 카드로 플로팅, 상시 고정 패널 우측에 배치) */}
+        {selectedFestival && (
+          <div className="h-full py-4 pl-4 flex items-center pointer-events-auto">
             <FestivalDetailPanel
               festival={selectedFestival}
               onClose={() => onSelectFestival(null)}
@@ -1038,7 +1026,7 @@ export default function InteractiveMap({
       {/* ========================================================= */}
       <div
         className={`md:hidden fixed left-0 right-0 bottom-0 z-[60] bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.18)] border-t border-gray-200 transition-all duration-300 flex flex-col ${
-          mobileSheetMode === 'expanded' ? 'h-[96dvh] top-[4dvh]' : 'h-[76px] overflow-hidden'
+          mobileSheetMode === 'expanded' ? 'h-[96dvh] top-[4dvh]' : 'h-[88px] overflow-hidden'
         }`}
       >
         {/* 상단 서랍 손잡이 핸들바 (A안: 텍스트 삭제, 슬림한 중앙 드래그 바만 유지) */}
@@ -1152,20 +1140,26 @@ export default function InteractiveMap({
             </span>
           </div>
 
-          {/* 5. 진행중, 진행예정, 종료 -> 복수선택 on/off가 되는 캡슐 형태 */}
+          {/* 5. 진행중, 예정, 종료 -> 라디오 버튼 (단일 선택) */}
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setShowOngoing(!showOngoing)}
+              onClick={() => {
+                setShowOngoing(true);
+                setShowUpcoming(false);
+                setShowEnded(false);
+              }}
               className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                 showOngoing
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-400 ring-2 ring-emerald-200/50 shadow-xs'
                   : 'bg-slate-100 text-gray-400 border-transparent'
               }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  showOngoing ? 'bg-emerald-500' : 'bg-gray-300'
+                className={`w-2 h-2 rounded-full border ${
+                  showOngoing
+                    ? 'bg-emerald-500 border-white ring-1 ring-emerald-500'
+                    : 'bg-gray-300 border-transparent'
                 }`}
               />
               <span>진행중</span>
@@ -1173,33 +1167,45 @@ export default function InteractiveMap({
 
             <button
               type="button"
-              onClick={() => setShowUpcoming(!showUpcoming)}
+              onClick={() => {
+                setShowOngoing(false);
+                setShowUpcoming(true);
+                setShowEnded(false);
+              }}
               className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                 showUpcoming
-                  ? 'bg-rose-50 text-[#e83428] border-rose-300 shadow-xs'
+                  ? 'bg-rose-50 text-[#e83428] border-rose-400 ring-2 ring-rose-200/50 shadow-xs'
                   : 'bg-slate-100 text-gray-400 border-transparent'
               }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  showUpcoming ? 'bg-[#e83428]' : 'bg-gray-300'
+                className={`w-2 h-2 rounded-full border ${
+                  showUpcoming
+                    ? 'bg-[#e83428] border-white ring-1 ring-[#e83428]'
+                    : 'bg-gray-300 border-transparent'
                 }`}
               />
-              <span>진행예정</span>
+              <span>예정</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setShowEnded(!showEnded)}
+              onClick={() => {
+                setShowOngoing(false);
+                setShowUpcoming(false);
+                setShowEnded(true);
+              }}
               className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition-all select-none border cursor-pointer ${
                 showEnded
-                  ? 'bg-slate-200/80 text-gray-800 border-slate-300 shadow-xs'
+                  ? 'bg-slate-200 text-gray-800 border-slate-400 ring-2 ring-slate-300/60 shadow-xs'
                   : 'bg-slate-100 text-gray-400 border-transparent'
               }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  showEnded ? 'bg-gray-600' : 'bg-gray-300'
+                className={`w-2 h-2 rounded-full border ${
+                  showEnded
+                    ? 'bg-gray-700 border-white ring-1 ring-gray-700'
+                    : 'bg-gray-300 border-transparent'
                 }`}
               />
               <span>종료</span>
