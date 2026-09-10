@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Festival, SERVICE_TODAY } from '@/lib/data';
-import { Locate, Loader2, ChevronLeft, ChevronRight, MapPin, Search, X, RotateCcw, Check } from 'lucide-react';
+import { Locate, Loader2, ChevronLeft, ChevronRight, MapPin, Search, X, Check } from 'lucide-react';
 import FestivalDetailPanel from './FestivalDetailPanel';
 
 declare global {
@@ -24,10 +24,9 @@ interface InteractiveMapProps {
   periodTabs: { key: string; label: string }[];
   // 추천 단축키 테마 상태
   selectedTheme: string | null;
-  setSelectedTheme: (t: string | null) => void;
-  // 전체 초기화
+  setSelectedTheme: (theme: string | null) => void;
   onResetFilters: () => void;
-  // 진행중 / 예정 / 종료 체크박스 상태
+  // 진행 상태 필터 체크박스 상태
   showOngoing: boolean;
   setShowOngoing: (val: boolean) => void;
   showUpcoming: boolean;
@@ -73,42 +72,9 @@ export default function InteractiveMap({
   // 우측 플로팅 패널 접기/펼치기 상태 (기본값: 펼침)
   const [isPanelOpen, setIsPanelOpen] = useState(true);
 
-  // 현재 필터링에 적용된 지도 영역(Bounds) 좌표 범위 상태
-  const [appliedBounds, setAppliedBounds] = useState<{
-    minLat: number;
-    maxLat: number;
-    minLng: number;
-    maxLng: number;
-  } | null>(null);
-
-  const initialBoundsRef = useRef<{
-    minLat: number;
-    maxLat: number;
-    minLng: number;
-    maxLng: number;
-  } | null>(null);
   const initialCenterRef = useRef<{ lat: number; lng: number; level: number } | null>(null);
-  // 서비스/프로그램에 의한 지도 자동 이동 여부 플래그 (사용자 직접 드래그/줌 조작 시에만 false)
-  const isProgrammaticMoveRef = useRef<boolean>(true);
   // 커스텀 스무스 글라이딩 애니메이션 프레임 레퍼런스
   const flyAnimationRef = useRef<number | null>(null);
-
-  // 현재 지도가 위치한 실시간 영역 및 재검색 버튼 노출 여부
-  const [currentBounds, setCurrentBounds] = useState<{
-    minLat: number;
-    maxLat: number;
-    minLng: number;
-    maxLng: number;
-  } | null>(null);
-  const [showRefreshBtn, setShowRefreshBtn] = useState(false);
-
-  // '현 지도에서 검색' 버튼 클릭 시 현재 보고 있는 영역을 적용하여 목록 갱신
-  const handleSearchInCurrentMap = () => {
-    if (currentBounds) {
-      setAppliedBounds(currentBounds);
-    }
-    setShowRefreshBtn(false);
-  };
 
   const [activeBannerIdx, setActiveBannerIdx] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
@@ -176,19 +142,12 @@ export default function InteractiveMap({
     // 상세 패널이 열려있다면 닫기
     onSelectFestival(null);
 
-    // 프로그램 제어 이동 플래그 활성화 -> idle 이벤트 시 '현 지도에서 검색' 버튼 노출 억제
-    isProgrammaticMoveRef.current = true;
-    setShowRefreshBtn(false);
-
     // 지도 인스턴스가 존재할 경우 최초 중심 좌표 및 줌 레벨로 부드럽게 글라이딩 리셋
     resetMapToInitial();
   };
 
   // 지도 최초 전국(한반도) 뷰 및 초기 영역으로 부드럽게 글라이딩 리셋하는 공통 함수
   const resetMapToInitial = () => {
-    isProgrammaticMoveRef.current = true;
-    setShowRefreshBtn(false);
-
     if (kakaoMapInstance.current && window.kakao) {
       const map = kakaoMapInstance.current;
       const initialCenter = initialCenterRef.current || { lat: 36.3504, lng: 127.8845, level: 12 };
@@ -203,29 +162,11 @@ export default function InteractiveMap({
           }
         }, 150);
       }
-
-      if (initialBoundsRef.current) {
-        setAppliedBounds(initialBoundsRef.current);
-        setCurrentBounds(initialBoundsRef.current);
-      }
     }
   };
 
-  // 현재 지도 화면(appliedBounds) 안에 실제로 들어와 있는 축제들만 필터링
-  const visibleFestivals = useMemo(() => {
-    if (!appliedBounds) return festivals;
-    return festivals.filter(fest => {
-      const lat = fest.mapy;
-      const lng = fest.mapx;
-      if (!lat || !lng) return false;
-      return (
-        lat >= appliedBounds.minLat &&
-        lat <= appliedBounds.maxLat &&
-        lng >= appliedBounds.minLng &&
-        lng <= appliedBounds.maxLng
-      );
-    });
-  }, [festivals, appliedBounds]);
+  // 검색 및 필터 조건에 부합하는 축제 목록 (검색 패널과 지도 마커 데이터 100% 항상 일치)
+  const visibleFestivals = festivals;
 
   // 카카오 지도 스크립트 동적 로드 및 맵 초기화
   useEffect(() => {
@@ -295,47 +236,7 @@ export default function InteractiveMap({
         const zoomControl = new window.kakao.maps.ZoomControl();
         map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
 
-        // 최초 로딩 시 지도 영역(Bounds) 및 중심 좌표/레벨 가져와서 바로 저장 및 적용
-        const bounds = map.getBounds();
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
-        const initialBounds = {
-          minLat: sw.getLat(),
-          maxLat: ne.getLat(),
-          minLng: sw.getLng(),
-          maxLng: ne.getLng()
-        };
-        initialBoundsRef.current = initialBounds;
         initialCenterRef.current = { lat: centerLat, lng: centerLng, level: initialLevel };
-        // 사용자가 직접 지도를 드래그하거나 휠 줌을 조작할 때만 플래그 해제
-        window.kakao.maps.event.addListener(map, 'dragstart', () => {
-          isProgrammaticMoveRef.current = false;
-        });
-        window.kakao.maps.event.addListener(map, 'zoom_start', () => {
-          isProgrammaticMoveRef.current = false;
-        });
-
-        // 지도 이동/줌 완료 시(idle) 실시간 지도 영역 감지 -> 사용자가 직접 조작했을 때만 '현 지도에서 검색' 버튼 노출
-        window.kakao.maps.event.addListener(map, 'idle', () => {
-          const newBounds = map.getBounds();
-          const newSw = newBounds.getSouthWest();
-          const newNe = newBounds.getNorthEast();
-          const cur = {
-            minLat: newSw.getLat(),
-            maxLat: newNe.getLat(),
-            minLng: newSw.getLng(),
-            maxLng: newNe.getLng()
-          };
-          setCurrentBounds(cur);
-
-          if (!isProgrammaticMoveRef.current) {
-            setShowRefreshBtn(true);
-          } else {
-            // 프로그램 제어 이동 완료 후 플래그 초기화
-            isProgrammaticMoveRef.current = false;
-          }
-        });
-
         // 지도 빈 영역 클릭 시 상세 패널 닫기
         window.kakao.maps.event.addListener(map, 'click', () => {
           onSelectFestival(null);
@@ -441,10 +342,6 @@ export default function InteractiveMap({
     }
 
     if (selectedFestival && selectedFestival.mapy && selectedFestival.mapx) {
-      // 축제 선택으로 인한 자동 이동 시 '현 지도에서 검색' 버튼 노출 억제
-      isProgrammaticMoveRef.current = true;
-      setShowRefreshBtn(false);
-
       const targetLat = Number(selectedFestival.mapy);
       const targetLng = Number(selectedFestival.mapx);
       const markerLatLon = new window.kakao.maps.LatLng(targetLat, targetLng);
@@ -913,7 +810,7 @@ export default function InteractiveMap({
                   <div className="p-8 text-center text-gray-400 text-xs">
                     <MapPin className="w-8 h-8 mx-auto mb-2 text-gray-300 stroke-[1.5]" />
                     <p className="font-semibold text-gray-600">검색 조건에 맞는 축제가 없습니다.</p>
-                    <p className="text-[11px] text-gray-400 mt-1">지도를 다른 지역으로 이동해보세요.</p>
+                    <p className="text-[11px] text-gray-400 mt-1">다른 검색어를 입력하거나 필터를 변경해보세요.</p>
                   </div>
                 ) : (
                   visibleFestivals.map((fest) => {
@@ -951,15 +848,15 @@ export default function InteractiveMap({
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-300 text-[10px]">
-                              No Img
+                              사진 없음
                             </div>
                           )}
                         </div>
 
-                        {/* 축제 요약 정보 */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        {/* 텍스트 메타 정보 */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between h-16 py-0.5">
                           <div>
-                            <div className="flex items-center gap-1.5 mb-0.5">
+                            <div className="flex items-center gap-1.5 mb-1">
                               <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${badgeColor}`}>
                                 {badgeText}
                               </span>
@@ -981,11 +878,6 @@ export default function InteractiveMap({
                 )}
               </div>
             </div>
-
-            {/* 패널 푸터: 안내 */}
-            <div className="p-2 border-t border-gray-100 bg-slate-50 text-[10px] text-gray-500 text-center flex-shrink-0">
-              지도를 움직인 후 상단 '현 지도에서 검색'을 누르면 갱신됩니다.
-            </div>
           </div>
         </div>
 
@@ -1000,19 +892,6 @@ export default function InteractiveMap({
           </div>
         )}
       </div>
-
-      {/* 지도 상단 플로팅: '현 지도에서 검색' 버튼 (지도 이동 시 노출) */}
-      {showRefreshBtn && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 animate-bounce">
-          <button
-            onClick={handleSearchInCurrentMap}
-            className="bg-[#0A2540] hover:bg-slate-900 text-white px-4 py-2 rounded-full shadow-2xl border border-white/20 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-amber-300 animate-spin-reverse" />
-            <span>현 지도에서 검색</span>
-          </button>
-        </div>
-      )}
 
       {/* 카카오맵이 마운트될 DOM 컨테이너 */}
       <div ref={mapRef} className="w-full h-full min-h-[500px] md:min-h-[560px] z-0" />
@@ -1232,7 +1111,7 @@ export default function InteractiveMap({
               <div className="p-6 text-center text-gray-400 text-xs">
                 <MapPin className="w-6 h-6 mx-auto mb-1 text-gray-300 stroke-[1.5]" />
                 <p className="font-semibold text-gray-600">검색 조건에 맞는 축제가 없습니다.</p>
-                <p className="text-[11px] text-gray-400 mt-1">지도를 다른 지역으로 이동해보세요.</p>
+                <p className="text-[11px] text-gray-400 mt-1">다른 검색어를 입력하거나 필터를 변경해보세요.</p>
               </div>
             ) : (
               visibleFestivals.map((fest) => {
