@@ -79,9 +79,24 @@ export default function InteractiveMap({
     setLocalSearchInput(searchQuery);
   }, [searchQuery]);
 
-  // 엔터 키 또는 돋보기 아이콘 클릭 시 검색 실행 핸들러
+  // 엔터 키 또는 돋보기 아이콘 클릭 시 검색 실행 핸들러 (A안: 즉시 이전 선택/오버레이/마커 초기화)
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    // 1. 진행 중이던 날아가는 애니메이션 취소
+    if (flyAnimationRef.current) {
+      cancelAnimationFrame(flyAnimationRef.current);
+      flyAnimationRef.current = null;
+    }
+    // 2. 오버레이 즉시 닫기
+    if (overlayRef.current) {
+      overlayRef.current.setMap(null);
+      overlayRef.current = null;
+    }
+    // 3. 기존 마커들 즉시 화면에서 제거하여 잔상 방지
+    markersRef.current.forEach(m => m.setMap(null));
+    markersRef.current = [];
+    // 4. 선택 상태 해제 및 새 검색어 전달
+    onSelectFestival(null);
     setSearchQuery(localSearchInput);
   };
 
@@ -350,9 +365,6 @@ export default function InteractiveMap({
   useEffect(() => {
     if (!isLoaded || !kakaoMapInstance.current || !window.kakao) return;
 
-    // 만약 축제가 선택된 상태라면 선택 상세 로직이 우선하므로 스킵
-    if (selectedFestival) return;
-
     const trimmed = searchQuery.trim();
     if (!trimmed) {
       if (lastFittedQueryRef.current !== '') {
@@ -373,6 +385,10 @@ export default function InteractiveMap({
     // 중요: 새 검색어에 대한 서버 데이터 조회가 진행 중(loading)일 때는 이전 데이터로 카메라를 이동시키지 않음
     if (loading) return;
 
+    // 만약 축제가 선택되어 있다면(사용자가 직접 검색 목록이나 마커를 클릭하여 축제를 고른 경우) 축제 상세 카메라 로직이 우선
+    // 단, 검색어가 새로 적용되는 첫 시점에는 위에서 onSelectFestival(null)로 비워졌으므로 통과됨
+    if (selectedFestival) return;
+
     // 유효한 좌표를 가진 검색 결과 축제 목록
     const validCoords = visibleFestivals.filter(f => f.mapy && f.mapx);
     if (validCoords.length === 0) return;
@@ -383,6 +399,12 @@ export default function InteractiveMap({
 
     const map = kakaoMapInstance.current;
     const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+
+    // 이전 비행 애니메이션이 실행 중이었다면 즉시 중단
+    if (flyAnimationRef.current) {
+      cancelAnimationFrame(flyAnimationRef.current);
+      flyAnimationRef.current = null;
+    }
 
     // 검색 결과 중 첫 번째 항목을 중심으로 레벨 8 줌 포커싱
     const firstFest = validCoords[0];

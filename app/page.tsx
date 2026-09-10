@@ -84,13 +84,13 @@ function HomeContent() {
     if (typeof window !== 'undefined' && window.history.pushState) {
       window.history.pushState(null, '', window.location.pathname);
     }
+    setSelectedFestival(null);
     setSearchQuery('');
     setSelectedPeriod('ALL');
     setSelectedTheme(null);
     setShowOngoing(true);
     setShowUpcoming(false);
     setShowEnded(false);
-    setSelectedFestival(null);
   };
 
   return (
@@ -106,7 +106,10 @@ function HomeContent() {
           selectedFestival={selectedFestival}
           onSelectFestival={(fest) => setSelectedFestival(fest)}
           searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+          setSearchQuery={(q) => {
+            setSelectedFestival(null);
+            setSearchQuery(q);
+          }}
           selectedPeriod={selectedPeriod}
           setSelectedPeriod={setSelectedPeriod}
           periodTabs={PERIOD_TABS}
