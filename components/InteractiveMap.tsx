@@ -385,23 +385,60 @@ export default function InteractiveMap({
       const targetLat = Number(fest.mapy);
       const targetLng = Number(fest.mapx);
       const moveLatLon = new window.kakao.maps.LatLng(targetLat, targetLng);
+
       map.setLevel(7, { animate: true });
+
+      if (isDesktop && map.getProjection) {
+        try {
+          const proj = map.getProjection();
+          const point = proj.pointFromCoords(moveLatLon);
+          const offsetPoint = new window.kakao.maps.Point(point.x - 200, point.y);
+          const offsetCoords = proj.coordsFromPoint(offsetPoint);
+          map.panTo(offsetCoords);
+          return;
+        } catch (e) {}
+      }
       map.panTo(moveLatLon);
     } else {
-      // 결과가 2개 이상인 경우 모든 마커를 포괄하는 LatLngBounds 생성
-      const bounds = new window.kakao.maps.LatLngBounds();
-      validCoords.forEach(f => {
-        bounds.extend(new window.kakao.maps.LatLng(Number(f.mapy), Number(f.mapx)));
-      });
+      // 결과가 2개 이상인 경우 마커들의 평균 중심 좌표를 계산
+      const sumLat = validCoords.reduce((acc, f) => acc + Number(f.mapy), 0);
+      const sumLng = validCoords.reduce((acc, f) => acc + Number(f.mapx), 0);
+      const avgLat = sumLat / validCoords.length;
+      const avgLng = sumLng / validCoords.length;
 
-      // PC의 경우 좌측 390px 패널에 가려지지 않도록 좌측 패딩 420px, 상하우 80px 설정
-      // 모바일의 경우 상단 60px, 하단 120px, 좌우 40px 패딩 설정
-      const paddingTop = isDesktop ? 80 : 60;
-      const paddingRight = isDesktop ? 80 : 40;
-      const paddingBottom = isDesktop ? 80 : 120;
-      const paddingLeft = isDesktop ? 420 : 40;
+      // 마커 간의 최대 위경도 거리(스팬) 측정
+      const lats = validCoords.map(f => Number(f.mapy));
+      const lngs = validCoords.map(f => Number(f.mapx));
+      const latSpan = Math.max(...lats) - Math.min(...lats);
+      const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+      const maxSpan = Math.max(latSpan, lngSpan);
 
-      map.setBounds(bounds, paddingTop, paddingRight, paddingBottom, paddingLeft);
+      // 스팬에 따라 도시/권역 전체가 시원하게 들어오는 최적 줌 레벨 결정
+      // 서울/부산/단일 시 단위: 레벨 8 (지나친 축소 방지)
+      // 경기도/강원도 등 광역 단위: 레벨 9~10
+      let targetLevel = 8;
+      if (maxSpan > 0.8) targetLevel = 10;
+      else if (maxSpan > 0.35) targetLevel = 9;
+      else if (maxSpan > 0.12) targetLevel = 8;
+      else targetLevel = 7;
+
+      map.setLevel(targetLevel, { animate: true });
+
+      const centerLatLon = new window.kakao.maps.LatLng(avgLat, avgLng);
+
+      // PC 환경에서 좌측 패널(390px)을 고려하여 우측 가시 영역 중앙으로 오프셋 보정
+      if (isDesktop && map.getProjection) {
+        try {
+          const proj = map.getProjection();
+          const point = proj.pointFromCoords(centerLatLon);
+          const offsetPoint = new window.kakao.maps.Point(point.x - 200, point.y);
+          const offsetCoords = proj.coordsFromPoint(offsetPoint);
+          map.panTo(offsetCoords);
+          return;
+        } catch (e) {}
+      }
+
+      map.panTo(centerLatLon);
     }
   }, [searchQuery, visibleFestivals, isLoaded, selectedFestival]);
 
