@@ -75,10 +75,7 @@ function HomeContent() {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchFestivals();
-    }, 250);
-    return () => clearTimeout(timer);
+    fetchFestivals();
   }, [searchQuery, selectedPeriod, selectedTheme, showOngoing, showUpcoming, showEnded]);
 
   // 검색 및 필터 전체 초기화 함수 (URL 쿼리 파라미터도 깨끗하게 제거하여 루트로 변경)

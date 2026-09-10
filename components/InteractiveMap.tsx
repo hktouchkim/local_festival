@@ -69,6 +69,20 @@ export default function InteractiveMap({
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  // 검색창 입력 로컬 상태 (엔터 또는 돋보기 클릭 시에만 실제 searchQuery로 전달)
+  const [localSearchInput, setLocalSearchInput] = useState(searchQuery);
+
+  // 외부(배너 클릭, 초기화 등)에서 searchQuery가 변경되면 입력창 텍스트 동기화
+  useEffect(() => {
+    setLocalSearchInput(searchQuery);
+  }, [searchQuery]);
+
+  // 엔터 키 또는 돋보기 아이콘 클릭 시 검색 실행 핸들러
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSearchQuery(localSearchInput);
+  };
+
   // 우측 플로팅 패널 접기/펼치기 상태 (기본값: 펼침)
   const [isPanelOpen, setIsPanelOpen] = useState(true);
 
@@ -328,6 +342,7 @@ export default function InteractiveMap({
   }, [visibleFestivals, isLoaded, onSelectFestival]);
 
   const lastFittedQueryRef = useRef<string>('');
+  const lastProcessedQueryRef = useRef<string>('');
 
   // 검색어 변경 시 검색 결과 마커들을 모두 포함하는 최적의 영역(Bounds Fit)으로 카메라 자동 이동 (A안)
   useEffect(() => {
@@ -340,10 +355,17 @@ export default function InteractiveMap({
     if (!trimmed) {
       if (lastFittedQueryRef.current !== '') {
         lastFittedQueryRef.current = '';
+        lastProcessedQueryRef.current = '';
         // 검색어가 비워진 경우(X 클릭 등) 초기 전국 뷰로 복귀
         resetMapToInitial();
       }
       return;
+    }
+
+    // 새로운 검색어가 들어왔으면 이전에 맞춘 플래그 리셋하여 데이터 도착 시 맞춤 준비
+    if (lastProcessedQueryRef.current !== trimmed) {
+      lastProcessedQueryRef.current = trimmed;
+      lastFittedQueryRef.current = '';
     }
 
     // 유효한 좌표를 가진 검색 결과 축제 목록
@@ -680,20 +702,28 @@ export default function InteractiveMap({
         <div className="flex items-stretch h-full pointer-events-auto">
           {/* 패널 메인 바디 (너비 w-[390px], 상/하/좌 완전 밀착, overflow-y-auto, stable-scrollbar) */}
           <div className="w-[390px] bg-white border-r border-gray-200 shadow-xl flex flex-col h-full overflow-y-auto stable-scrollbar scrollbar-thin scrollbar-thumb-gray-200 select-none">
-            {/* 1. 검색창 (초기화 버튼 삭제, 입력 내용이 있을 때 x 누르면 검색어 및 필터 전체 초기화) */}
+            {/* 1. 검색창 (초기화 버튼 삭제, 엔터 또는 돋보기 클릭 시 검색 실행, x 누르면 즉시 초기화) */}
             <div className="sticky top-0 z-20 bg-white p-3.5 border-b border-gray-100 shadow-xs">
-              <div className="relative flex items-center">
-                <Search className="w-4 h-4 text-[#0A2540] absolute left-3 font-bold" />
+              <form onSubmit={handleSearchSubmit} className="relative flex items-center">
+                <button
+                  type="submit"
+                  title="검색 실행"
+                  className="absolute left-2.5 p-1 text-[#0A2540] hover:text-blue-700 hover:scale-110 transition z-10"
+                >
+                  <Search className="w-4 h-4 font-bold" />
+                </button>
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="축제명 또는 주소를 입력하세요."
+                  value={localSearchInput}
+                  onChange={(e) => setLocalSearchInput(e.target.value)}
+                  placeholder="축제명 또는 주소를 입력하세요 (Enter)"
                   className="w-full pl-9 pr-9 py-2.5 bg-white border-2 border-slate-300 focus:border-[#0A2540] rounded-xl text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none shadow-xs transition"
                 />
-                {searchQuery && (
+                {(localSearchInput || searchQuery) && (
                   <button
+                    type="button"
                     onClick={() => {
+                      setLocalSearchInput('');
                       onResetFilters();
                       resetMapToInitial();
                     }}
@@ -703,7 +733,7 @@ export default function InteractiveMap({
                     <X className="w-4 h-4" />
                   </button>
                 )}
-              </div>
+              </form>
             </div>
 
             {/* 패널 내부 스크롤 콘텐츠 */}
@@ -990,21 +1020,29 @@ export default function InteractiveMap({
           <div className="w-10 h-1 bg-gray-300 hover:bg-gray-400 rounded-full transition" />
         </div>
 
-        {/* 1. 검색창 (초기화 버튼 삭제, x 누르면 검색어 및 필터 초기화) */}
+        {/* 1. 검색창 (초기화 버튼 삭제, 엔터 또는 돋보기 클릭 시 검색 실행, x 누르면 즉시 초기화) */}
         <div className="p-3 border-b border-gray-100 bg-white flex-shrink-0">
-          <div className="relative flex items-center shadow-xs rounded-xl overflow-hidden bg-slate-50 border border-slate-300 focus-within:border-[#0A2540] focus-within:ring-2 focus-within:ring-blue-100 transition">
-            <Search className="w-4 h-4 text-[#0A2540] ml-3.5 flex-shrink-0" />
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center shadow-xs rounded-xl overflow-hidden bg-slate-50 border border-slate-300 focus-within:border-[#0A2540] focus-within:ring-2 focus-within:ring-blue-100 transition">
+            <button
+              type="submit"
+              title="검색 실행"
+              className="p-3 text-[#0A2540] hover:text-blue-700 transition flex-shrink-0"
+            >
+              <Search className="w-4 h-4 font-bold" />
+            </button>
             <input
               type="text"
-              value={searchQuery}
+              value={localSearchInput}
               onFocus={() => setMobileSheetMode('expanded')}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="축제명 또는 주소를 입력하세요."
-              className="w-full pl-3 pr-10 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 bg-transparent focus:outline-none"
+              onChange={(e) => setLocalSearchInput(e.target.value)}
+              placeholder="축제명 또는 주소를 입력하세요 (Enter)"
+              className="w-full pr-10 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 bg-transparent focus:outline-none"
             />
-            {searchQuery && (
+            {(localSearchInput || searchQuery) && (
               <button
+                type="button"
                 onClick={() => {
+                  setLocalSearchInput('');
                   onResetFilters();
                   resetMapToInitial();
                 }}
@@ -1014,7 +1052,7 @@ export default function InteractiveMap({
                 <X className="w-4 h-4" />
               </button>
             )}
-          </div>
+          </form>
         </div>
 
         {/* 바텀시트 본문 스크롤 영역 (콘텐츠 내부 제스처 분리: 스크롤 끝 도달 시에만 시트 동작) */}
