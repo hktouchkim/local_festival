@@ -15,6 +15,7 @@ declare global {
 interface InteractiveMapProps {
   festivals: Festival[];
   loading?: boolean;
+  dataQuery?: string;
   selectedFestival: Festival | null;
   onSelectFestival: (festival: Festival | null) => void;
   // 검색 필터 상태 연동
@@ -42,6 +43,7 @@ const TODAY_STR = SERVICE_TODAY;
 export default function InteractiveMap({
   festivals,
   loading = false,
+  dataQuery = '',
   selectedFestival,
   onSelectFestival,
   searchQuery,
@@ -361,7 +363,7 @@ export default function InteractiveMap({
   const lastFittedQueryRef = useRef<string>('');
   const lastProcessedQueryRef = useRef<string>('');
 
-  // 검색어 변경 시 검색 결과 마커들을 모두 포함하는 최적의 영역(Bounds Fit)으로 카메라 자동 이동 (A안)
+  // 검색어 변경 시 검색 결과 마커들을 모두 포함하는 최적의 영역(레벨 8 및 1번째 결과)으로 카메라 자동 이동
   useEffect(() => {
     if (!isLoaded || !kakaoMapInstance.current || !window.kakao) return;
 
@@ -376,17 +378,19 @@ export default function InteractiveMap({
       return;
     }
 
-    // 새로운 검색어가 들어왔으면 이전에 맞춘 플래그 리셋하여 새 데이터 도착 시 맞춤 준비
+    // 새 검색어가 입력되면 이전 포커싱 잠금 해제
     if (lastProcessedQueryRef.current !== trimmed) {
       lastProcessedQueryRef.current = trimmed;
       lastFittedQueryRef.current = '';
     }
 
-    // 중요: 새 검색어에 대한 서버 데이터 조회가 진행 중(loading)일 때는 이전 데이터로 카메라를 이동시키지 않음
+    // [핵심 해결책] 1-Step 지연 완벽 차단:
+    // 1. 현재 네트워크 조회가 진행 중(loading)일 때는 이동 금지
+    // 2. 현재 화면의 축제 데이터(visibleFestivals)가 '방금 요청한 검색어(trimmed)'의 결과가 아니라면 이동 금지 (dataQuery !== trimmed)
     if (loading) return;
+    if (dataQuery !== trimmed) return;
 
-    // 만약 축제가 선택되어 있다면(사용자가 직접 검색 목록이나 마커를 클릭하여 축제를 고른 경우) 축제 상세 카메라 로직이 우선
-    // 단, 검색어가 새로 적용되는 첫 시점에는 위에서 onSelectFestival(null)로 비워졌으므로 통과됨
+    // 만약 축제가 선택되어 있다면 축제 상세 카메라 로직이 우선
     if (selectedFestival) return;
 
     // 유효한 좌표를 가진 검색 결과 축제 목록
@@ -428,7 +432,7 @@ export default function InteractiveMap({
     }
 
     map.panTo(targetLatLon);
-  }, [searchQuery, visibleFestivals, loading, isLoaded, selectedFestival]);
+  }, [searchQuery, dataQuery, visibleFestivals, loading, isLoaded, selectedFestival]);
 
   // 선택된 축제 변경 시 줌인 및 말풍선 노출
   useEffect(() => {

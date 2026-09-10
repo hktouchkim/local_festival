@@ -28,12 +28,16 @@ function HomeContent() {
   const [showEnded, setShowEnded] = useState(false);
   const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null);
 
+  // 현재 화면에 로드된 festivals 데이터가 어떤 검색어의 결과인지를 추적하는 상태 (1-Step 지연 방지 핵심)
+  const [dataQuery, setDataQuery] = useState('');
+
   // 축제 데이터 로드 (검색어, 기간, 테마, 상태 연동)
   const fetchFestivals = async () => {
+    const currentQ = searchQuery.trim();
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (searchQuery.trim()) params.append('q', searchQuery.trim());
+      if (currentQ) params.append('q', currentQ);
       if (selectedPeriod !== 'ALL') params.append('period', selectedPeriod);
       if (selectedTheme) params.append('theme', selectedTheme);
       params.append('ongoing', showOngoing ? 'true' : 'false');
@@ -44,6 +48,7 @@ function HomeContent() {
       const data = await res.json();
       if (data.success) {
         setFestivals(data.data);
+        setDataQuery(currentQ);
 
         // 최초 진입 시 URL에 festivalId가 전달된 경우 1회 한정 해당 축제 자동 선택
         if (initialFestivalIdRef.current) {
@@ -58,9 +63,9 @@ function HomeContent() {
             // 목록 필터에 포함되지 않았더라도 단독 API로 가져와 선택
             fetch(`/api/festivals/${fid}`)
               .then(r => r.json())
-              .then(single => {
-                if (single.success && single.data) {
-                  setSelectedFestival(single.data);
+              .then(singleData => {
+                if (singleData.success && singleData.data) {
+                  setSelectedFestival(singleData.data);
                 }
               })
               .catch(() => {});
@@ -84,13 +89,14 @@ function HomeContent() {
     if (typeof window !== 'undefined' && window.history.pushState) {
       window.history.pushState(null, '', window.location.pathname);
     }
-    setSelectedFestival(null);
     setSearchQuery('');
+    setDataQuery('');
     setSelectedPeriod('ALL');
     setSelectedTheme(null);
     setShowOngoing(true);
     setShowUpcoming(false);
     setShowEnded(false);
+    setSelectedFestival(null);
   };
 
   return (
@@ -103,6 +109,7 @@ function HomeContent() {
         <InteractiveMap
           festivals={festivals}
           loading={loading}
+          dataQuery={dataQuery}
           selectedFestival={selectedFestival}
           onSelectFestival={(fest) => setSelectedFestival(fest)}
           searchQuery={searchQuery}
