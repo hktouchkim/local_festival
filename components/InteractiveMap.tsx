@@ -330,6 +330,59 @@ export default function InteractiveMap({
     markersRef.current = newMarkers;
   }, [visibleFestivals, isLoaded, onSelectFestival]);
 
+  const prevSearchQueryRef = useRef<string>(searchQuery);
+
+  // 검색어 변경 시 검색 결과 마커들을 모두 포함하는 최적의 영역(Bounds Fit)으로 카메라 자동 이동 (A안)
+  useEffect(() => {
+    if (!isLoaded || !kakaoMapInstance.current || !window.kakao) return;
+
+    // 검색어가 이전과 같으면 스킵
+    if (prevSearchQueryRef.current === searchQuery) return;
+    prevSearchQueryRef.current = searchQuery;
+
+    // 만약 축제가 선택된 상태라면 선택 상세 로직이 우선하므로 스킵
+    if (selectedFestival) return;
+
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      // 검색어가 비워진 경우(X 클릭 등) 초기 전국 뷰로 복귀
+      resetMapToInitial();
+      return;
+    }
+
+    // 유효한 좌표를 가진 검색 결과 축제 목록
+    const validCoords = visibleFestivals.filter(f => f.mapy && f.mapx);
+    if (validCoords.length === 0) return;
+
+    const map = kakaoMapInstance.current;
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+
+    if (validCoords.length === 1) {
+      // 결과가 1개인 경우 해당 위치를 줌 레벨 7로 확대 포커싱
+      const fest = validCoords[0];
+      const targetLat = Number(fest.mapy);
+      const targetLng = Number(fest.mapx);
+      const moveLatLon = new window.kakao.maps.LatLng(targetLat, targetLng);
+      map.setLevel(7, { animate: true });
+      map.panTo(moveLatLon);
+    } else {
+      // 결과가 2개 이상인 경우 모든 마커를 포괄하는 LatLngBounds 생성
+      const bounds = new window.kakao.maps.LatLngBounds();
+      validCoords.forEach(f => {
+        bounds.extend(new window.kakao.maps.LatLng(Number(f.mapy), Number(f.mapx)));
+      });
+
+      // PC의 경우 좌측 390px 패널에 가려지지 않도록 좌측 패딩 420px, 상하우 80px 설정
+      // 모바일의 경우 상단 60px, 하단 120px, 좌우 40px 패딩 설정
+      const paddingTop = isDesktop ? 80 : 60;
+      const paddingRight = isDesktop ? 80 : 40;
+      const paddingBottom = isDesktop ? 80 : 120;
+      const paddingLeft = isDesktop ? 420 : 40;
+
+      map.setBounds(bounds, paddingTop, paddingRight, paddingBottom, paddingLeft);
+    }
+  }, [searchQuery, visibleFestivals, isLoaded, selectedFestival]);
+
   // 선택된 축제 변경 시 줌인 및 말풍선 노출
   useEffect(() => {
     if (!isLoaded || !kakaoMapInstance.current || !window.kakao) return;
