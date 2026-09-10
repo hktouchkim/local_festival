@@ -180,7 +180,13 @@ export default function InteractiveMap({
   const resetMapToInitial = () => {
     if (kakaoMapInstance.current && window.kakao) {
       const map = kakaoMapInstance.current;
-      const initialCenter = initialCenterRef.current || { lat: 36.3504, lng: 127.8845, level: 12 };
+      const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+      const defaultCenter = {
+        lat: isDesktop ? 36.3504 : 35.75,
+        lng: isDesktop ? 127.35 : 127.8845,
+        level: isDesktop ? 12 : 13
+      };
+      const initialCenter = initialCenterRef.current || defaultCenter;
       const initialLatLon = new window.kakao.maps.LatLng(initialCenter.lat, initialCenter.lng);
 
       map.panTo(initialLatLon);
@@ -390,8 +396,18 @@ export default function InteractiveMap({
     if (loading) return;
     if (dataQuery !== trimmed) return;
 
-    // 만약 축제가 선택되어 있다면 축제 상세 카메라 로직이 우선
-    if (selectedFestival) return;
+    // 배너 타이틀 목록 정의 (배너 선택 시에는 첫 축제 줌인을 생략하고 남한 전체 뷰 유지)
+    const bannerTitles = THEME_BANNERS.map(b => b.title.trim());
+    const isThemeBannerQuery = bannerTitles.includes(trimmed);
+
+    if (isThemeBannerQuery) {
+      if (lastFittedQueryRef.current !== trimmed) {
+        lastFittedQueryRef.current = trimmed;
+        // 배너를 선택했을 때는 첫 화면처럼 지도가 항상 남한 전체를 보여주도록 초기 뷰로 리셋
+        resetMapToInitial();
+      }
+      return;
+    }
 
     // 유효한 좌표를 가진 검색 결과 축제 목록
     const validCoords = visibleFestivals.filter(f => f.mapy && f.mapx);
@@ -410,7 +426,7 @@ export default function InteractiveMap({
       flyAnimationRef.current = null;
     }
 
-    // 검색 결과 중 첫 번째 항목을 중심으로 레벨 8 줌 포커싱
+    // 일반 검색어일 때만 검색 결과 중 첫 번째 항목을 중심으로 레벨 8 줌 포커싱
     const firstFest = validCoords[0];
     const targetLat = Number(firstFest.mapy);
     const targetLng = Number(firstFest.mapx);
