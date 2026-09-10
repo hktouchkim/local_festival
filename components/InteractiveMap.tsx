@@ -97,8 +97,10 @@ export default function InteractiveMap({
     // 3. 기존 마커들 즉시 화면에서 제거하여 잔상 방지
     markersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
-    // 4. 선택 상태 해제 및 새 검색어 전달
+    // 4. 선택 상태 해제, 배지(테마) 및 기간 초기화(전체 축제 대상 신규 검색 보장, 진행상태는 보존)
     onSelectFestival(null);
+    setSelectedTheme(null);
+    setSelectedPeriod('ALL');
     setSearchQuery(localSearchInput);
   };
 
