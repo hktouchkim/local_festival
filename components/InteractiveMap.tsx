@@ -183,20 +183,29 @@ export default function InteractiveMap({
     if (kakaoMapInstance.current && window.kakao) {
       const map = kakaoMapInstance.current;
       const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
-      const defaultCenter = {
-        lat: isDesktop ? 36.3504 : 35.75,
-        lng: isDesktop ? 127.60 : 127.8845,
-        level: isDesktop ? 12 : 13
-      };
-      const initialCenter = initialCenterRef.current || defaultCenter;
-      const initialLatLon = new window.kakao.maps.LatLng(initialCenter.lat, initialCenter.lng);
+      const targetLevel = isDesktop ? 12 : 13;
+      const baseLatLon = new window.kakao.maps.LatLng(
+        isDesktop ? 36.3504 : 35.75,
+        127.8845
+      );
 
-      map.panTo(initialLatLon);
+      // PC 환경에서 좌측 390px 패널 너비를 감안하여 가시 영역 정중앙(195px 오프셋)으로 정확히 정렬
+      let targetCenterLatLon = baseLatLon;
+      if (isDesktop && map.getProjection) {
+        try {
+          const proj = map.getProjection();
+          const point = proj.pointFromCoords(baseLatLon);
+          const offsetPoint = new window.kakao.maps.Point(point.x - 195, point.y);
+          targetCenterLatLon = proj.coordsFromPoint(offsetPoint);
+        } catch (e) {}
+      }
 
-      if (map.getLevel() !== initialCenter.level) {
+      map.panTo(targetCenterLatLon);
+
+      if (map.getLevel() !== targetLevel) {
         setTimeout(() => {
           if (kakaoMapInstance.current) {
-            kakaoMapInstance.current.setLevel(initialCenter.level, { animate: true });
+            kakaoMapInstance.current.setLevel(targetLevel, { animate: true });
           }
         }, 150);
       }
@@ -256,7 +265,7 @@ export default function InteractiveMap({
         // PC: 좌측 390px 패널 너비를 감안하여 중심 경도를 서쪽으로 살짝 이동
         // 모바일: 하단 바텀시트에 남부/제주가 가려지지 않도록 중심 위도를 남쪽(35.75)으로 내리고 줌 레벨을 13으로 최적화
         const centerLat = isDesktop ? 36.3504 : 35.75;
-        const centerLng = isDesktop ? 127.60 : 127.8845;
+        const centerLng = 127.8845;
         const initialLevel = isDesktop ? 12 : 13;
 
         const options = {
@@ -267,6 +276,23 @@ export default function InteractiveMap({
         const map = new window.kakao.maps.Map(container, options);
         kakaoMapInstance.current = map;
 
+        // PC 환경: 좌측 390px 패널 너비를 감안하여 가시 영역 정중앙(195px 오프셋)으로 즉시 정렬
+        if (isDesktop && map.getProjection) {
+          try {
+            const proj = map.getProjection();
+            const baseLatLon = new window.kakao.maps.LatLng(centerLat, centerLng);
+            const point = proj.pointFromCoords(baseLatLon);
+            const offsetPoint = new window.kakao.maps.Point(point.x - 195, point.y);
+            const offsetCoords = proj.coordsFromPoint(offsetPoint);
+            map.setCenter(offsetCoords);
+            initialCenterRef.current = { lat: offsetCoords.getLat(), lng: offsetCoords.getLng(), level: initialLevel };
+          } catch (e) {
+            initialCenterRef.current = { lat: centerLat, lng: centerLng, level: initialLevel };
+          }
+        } else {
+          initialCenterRef.current = { lat: centerLat, lng: centerLng, level: initialLevel };
+        }
+
         // 마우스 휠 스크롤 시 즉시 줌 확대/축소 활성화
         map.setZoomable(true);
 
@@ -274,7 +300,6 @@ export default function InteractiveMap({
         const zoomControl = new window.kakao.maps.ZoomControl();
         map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
 
-        initialCenterRef.current = { lat: centerLat, lng: centerLng, level: initialLevel };
         // 지도 빈 영역 클릭 시 상세 패널 닫기
         window.kakao.maps.event.addListener(map, 'click', () => {
           onSelectFestival(null);
@@ -437,12 +462,12 @@ export default function InteractiveMap({
     // 요청 정책: 지도 레벨 8 고정
     map.setLevel(8, { animate: true });
 
-    // PC 환경에서 좌측 패널(390px)을 고려하여 우측 가시 영역 중앙으로 오프셋 보정 (100px로 축소하여 좌측으로 균형 이동)
+    // PC 환경에서 좌측 패널(390px)을 고려하여 우측 가시 영역 중앙으로 오프셋 보정 (195px로 가시영역 완벽 정렬)
     if (isDesktop && map.getProjection) {
       try {
         const proj = map.getProjection();
         const point = proj.pointFromCoords(targetLatLon);
-        const offsetPoint = new window.kakao.maps.Point(point.x - 100, point.y);
+        const offsetPoint = new window.kakao.maps.Point(point.x - 195, point.y);
         const offsetCoords = proj.coordsFromPoint(offsetPoint);
         map.panTo(offsetCoords);
         return;
