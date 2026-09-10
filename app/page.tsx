@@ -102,6 +102,7 @@ function HomeContent() {
       <main className="flex-1 w-full relative overflow-hidden">
         <InteractiveMap
           festivals={festivals}
+          loading={loading}
           selectedFestival={selectedFestival}
           onSelectFestival={(fest) => setSelectedFestival(fest)}
           searchQuery={searchQuery}

@@ -14,6 +14,7 @@ declare global {
 
 interface InteractiveMapProps {
   festivals: Festival[];
+  loading?: boolean;
   selectedFestival: Festival | null;
   onSelectFestival: (festival: Festival | null) => void;
   // 검색 필터 상태 연동
@@ -40,6 +41,7 @@ const TODAY_STR = SERVICE_TODAY;
 
 export default function InteractiveMap({
   festivals,
+  loading = false,
   selectedFestival,
   onSelectFestival,
   searchQuery,
@@ -362,17 +364,20 @@ export default function InteractiveMap({
       return;
     }
 
-    // 새로운 검색어가 들어왔으면 이전에 맞춘 플래그 리셋하여 데이터 도착 시 맞춤 준비
+    // 새로운 검색어가 들어왔으면 이전에 맞춘 플래그 리셋하여 새 데이터 도착 시 맞춤 준비
     if (lastProcessedQueryRef.current !== trimmed) {
       lastProcessedQueryRef.current = trimmed;
       lastFittedQueryRef.current = '';
     }
 
+    // 중요: 새 검색어에 대한 서버 데이터 조회가 진행 중(loading)일 때는 이전 데이터로 카메라를 이동시키지 않음
+    if (loading) return;
+
     // 유효한 좌표를 가진 검색 결과 축제 목록
     const validCoords = visibleFestivals.filter(f => f.mapy && f.mapx);
     if (validCoords.length === 0) return;
 
-    // 현재 검색어에 대해 이미 bounds fit을 적용했으면 중복 실행 방지
+    // 현재 검색어에 대해 이미 카메라 포커싱을 적용했으면 중복 실행 방지
     if (lastFittedQueryRef.current === trimmed) return;
     lastFittedQueryRef.current = trimmed;
 
@@ -401,7 +406,7 @@ export default function InteractiveMap({
     }
 
     map.panTo(targetLatLon);
-  }, [searchQuery, visibleFestivals, isLoaded, selectedFestival]);
+  }, [searchQuery, visibleFestivals, loading, isLoaded, selectedFestival]);
 
   // 선택된 축제 변경 시 줌인 및 말풍선 노출
   useEffect(() => {
