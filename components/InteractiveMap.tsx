@@ -364,7 +364,7 @@ export default function InteractiveMap({
       { offset: new window.kakao.maps.Point(13, 33) }
     );
 
-    const newMarkers = visibleFestivals.map(fest => {
+    const newMarkers = visibleFestivals.map((fest, idx) => {
       const pos = new window.kakao.maps.LatLng(fest.mapy, fest.mapx);
 
       let markerImage = ongoingMarkerImg;
@@ -376,11 +376,16 @@ export default function InteractiveMap({
         markerImage = endedMarkerImg;
       }
 
+      // 1순위: 선택된 축제(9999), 2순위: 검색 결과 상위 순서대로 높은 zIndex 부여 (1000 - idx, 최소 1)
+      const isSelected = selectedFestival?.id === fest.id;
+      const markerZIndex = isSelected ? 9999 : Math.max(1, 1000 - idx);
+
       const marker = new window.kakao.maps.Marker({
         position: pos,
         map: map,
         title: fest.title,
-        image: markerImage
+        image: markerImage,
+        zIndex: markerZIndex
       });
 
       window.kakao.maps.event.addListener(marker, 'click', () => {
@@ -391,7 +396,7 @@ export default function InteractiveMap({
     });
 
     markersRef.current = newMarkers;
-  }, [visibleFestivals, isLoaded, onSelectFestival]);
+  }, [visibleFestivals, isLoaded, onSelectFestival, selectedFestival]);
 
   const lastFittedQueryRef = useRef<string>('');
   const lastProcessedQueryRef = useRef<string>('');
@@ -589,6 +594,7 @@ export default function InteractiveMap({
         position: markerLatLon,
         content: content,
         yAnchor: 1.0,
+        zIndex: 10000,
       });
 
       customOverlay.setMap(map);
