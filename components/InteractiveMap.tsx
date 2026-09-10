@@ -379,67 +379,28 @@ export default function InteractiveMap({
     const map = kakaoMapInstance.current;
     const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
 
-    if (validCoords.length === 1) {
-      // 결과가 1개인 경우 해당 위치를 줌 레벨 7로 확대 포커싱
-      const fest = validCoords[0];
-      const targetLat = Number(fest.mapy);
-      const targetLng = Number(fest.mapx);
-      const moveLatLon = new window.kakao.maps.LatLng(targetLat, targetLng);
+    // 검색 결과 중 첫 번째 항목을 중심으로 레벨 8 줌 포커싱
+    const firstFest = validCoords[0];
+    const targetLat = Number(firstFest.mapy);
+    const targetLng = Number(firstFest.mapx);
+    const targetLatLon = new window.kakao.maps.LatLng(targetLat, targetLng);
 
-      map.setLevel(7, { animate: true });
+    // 요청 정책: 지도 레벨 8 고정
+    map.setLevel(8, { animate: true });
 
-      if (isDesktop && map.getProjection) {
-        try {
-          const proj = map.getProjection();
-          const point = proj.pointFromCoords(moveLatLon);
-          const offsetPoint = new window.kakao.maps.Point(point.x - 200, point.y);
-          const offsetCoords = proj.coordsFromPoint(offsetPoint);
-          map.panTo(offsetCoords);
-          return;
-        } catch (e) {}
-      }
-      map.panTo(moveLatLon);
-    } else {
-      // 결과가 2개 이상인 경우 마커들의 평균 중심 좌표를 계산
-      const sumLat = validCoords.reduce((acc, f) => acc + Number(f.mapy), 0);
-      const sumLng = validCoords.reduce((acc, f) => acc + Number(f.mapx), 0);
-      const avgLat = sumLat / validCoords.length;
-      const avgLng = sumLng / validCoords.length;
-
-      // 마커 간의 최대 위경도 거리(스팬) 측정
-      const lats = validCoords.map(f => Number(f.mapy));
-      const lngs = validCoords.map(f => Number(f.mapx));
-      const latSpan = Math.max(...lats) - Math.min(...lats);
-      const lngSpan = Math.max(...lngs) - Math.min(...lngs);
-      const maxSpan = Math.max(latSpan, lngSpan);
-
-      // 스팬에 따라 도시/권역 전체가 시원하게 들어오는 최적 줌 레벨 결정
-      // 서울/부산/단일 시 단위: 레벨 8 (지나친 축소 방지)
-      // 경기도/강원도 등 광역 단위: 레벨 9~10
-      let targetLevel = 8;
-      if (maxSpan > 0.8) targetLevel = 10;
-      else if (maxSpan > 0.35) targetLevel = 9;
-      else if (maxSpan > 0.12) targetLevel = 8;
-      else targetLevel = 7;
-
-      map.setLevel(targetLevel, { animate: true });
-
-      const centerLatLon = new window.kakao.maps.LatLng(avgLat, avgLng);
-
-      // PC 환경에서 좌측 패널(390px)을 고려하여 우측 가시 영역 중앙으로 오프셋 보정
-      if (isDesktop && map.getProjection) {
-        try {
-          const proj = map.getProjection();
-          const point = proj.pointFromCoords(centerLatLon);
-          const offsetPoint = new window.kakao.maps.Point(point.x - 200, point.y);
-          const offsetCoords = proj.coordsFromPoint(offsetPoint);
-          map.panTo(offsetCoords);
-          return;
-        } catch (e) {}
-      }
-
-      map.panTo(centerLatLon);
+    // PC 환경에서 좌측 패널(390px)을 고려하여 우측 가시 영역 중앙으로 오프셋 보정 (200px)
+    if (isDesktop && map.getProjection) {
+      try {
+        const proj = map.getProjection();
+        const point = proj.pointFromCoords(targetLatLon);
+        const offsetPoint = new window.kakao.maps.Point(point.x - 200, point.y);
+        const offsetCoords = proj.coordsFromPoint(offsetPoint);
+        map.panTo(offsetCoords);
+        return;
+      } catch (e) {}
     }
+
+    map.panTo(targetLatLon);
   }, [searchQuery, visibleFestivals, isLoaded, selectedFestival]);
 
   // 선택된 축제 변경 시 줌인 및 말풍선 노출
