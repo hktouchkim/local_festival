@@ -141,9 +141,6 @@ export default function InteractiveMap({
 
     // 상세 패널이 열려있다면 닫기
     onSelectFestival(null);
-
-    // 지도 인스턴스가 존재할 경우 최초 중심 좌표 및 줌 레벨로 부드럽게 글라이딩 리셋
-    resetMapToInitial();
   };
 
   // 지도 최초 전국(한반도) 뷰 및 초기 영역으로 부드럽게 글라이딩 리셋하는 공통 함수
@@ -330,29 +327,32 @@ export default function InteractiveMap({
     markersRef.current = newMarkers;
   }, [visibleFestivals, isLoaded, onSelectFestival]);
 
-  const prevSearchQueryRef = useRef<string>(searchQuery);
+  const lastFittedQueryRef = useRef<string>('');
 
   // 검색어 변경 시 검색 결과 마커들을 모두 포함하는 최적의 영역(Bounds Fit)으로 카메라 자동 이동 (A안)
   useEffect(() => {
     if (!isLoaded || !kakaoMapInstance.current || !window.kakao) return;
-
-    // 검색어가 이전과 같으면 스킵
-    if (prevSearchQueryRef.current === searchQuery) return;
-    prevSearchQueryRef.current = searchQuery;
 
     // 만약 축제가 선택된 상태라면 선택 상세 로직이 우선하므로 스킵
     if (selectedFestival) return;
 
     const trimmed = searchQuery.trim();
     if (!trimmed) {
-      // 검색어가 비워진 경우(X 클릭 등) 초기 전국 뷰로 복귀
-      resetMapToInitial();
+      if (lastFittedQueryRef.current !== '') {
+        lastFittedQueryRef.current = '';
+        // 검색어가 비워진 경우(X 클릭 등) 초기 전국 뷰로 복귀
+        resetMapToInitial();
+      }
       return;
     }
 
     // 유효한 좌표를 가진 검색 결과 축제 목록
     const validCoords = visibleFestivals.filter(f => f.mapy && f.mapx);
     if (validCoords.length === 0) return;
+
+    // 현재 검색어에 대해 이미 bounds fit을 적용했으면 중복 실행 방지
+    if (lastFittedQueryRef.current === trimmed) return;
+    lastFittedQueryRef.current = trimmed;
 
     const map = kakaoMapInstance.current;
     const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
