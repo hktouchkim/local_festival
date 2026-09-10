@@ -783,34 +783,36 @@ export default function InteractiveMap({
             {/* 1. 검색창 (초기화 버튼 삭제, 엔터 또는 돋보기 클릭 시 검색 실행, x 누르면 즉시 초기화) */}
             <div className="sticky top-0 z-20 bg-white p-3.5 border-b border-gray-100 shadow-xs">
               <form onSubmit={handleSearchSubmit} className="relative flex items-center">
-                <button
-                  type="submit"
-                  title="검색 실행"
-                  className="absolute left-2.5 p-1 text-[#0A2540] hover:text-blue-700 hover:scale-110 transition z-10"
-                >
-                  <Search className="w-4 h-4 font-bold" />
-                </button>
                 <input
                   type="text"
                   value={localSearchInput}
                   onChange={(e) => setLocalSearchInput(e.target.value)}
                   placeholder="축제명 또는 주소를 입력하세요 (Enter)"
-                  className="w-full pl-9 pr-9 py-2.5 bg-white border-2 border-slate-300 focus:border-[#0A2540] rounded-xl text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none shadow-xs transition"
+                  className="w-full pl-3.5 pr-16 py-2.5 bg-white border-2 border-slate-300 focus:border-[#0A2540] rounded-xl text-xs font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none shadow-xs transition"
                 />
-                {(localSearchInput || searchQuery) && (
+                <div className="absolute right-1.5 flex items-center gap-0.5">
+                  {(localSearchInput || searchQuery) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocalSearchInput('');
+                        onResetFilters();
+                        resetMapToInitial();
+                      }}
+                      className="p-1 text-gray-400 hover:text-gray-600 transition rounded-full hover:bg-slate-100"
+                      title="검색어 지우기 및 필터 초기화"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
-                    type="button"
-                    onClick={() => {
-                      setLocalSearchInput('');
-                      onResetFilters();
-                      resetMapToInitial();
-                    }}
-                    className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-1"
-                    title="검색어 지우기 및 필터 초기화"
+                    type="submit"
+                    title="검색 실행"
+                    className="p-1.5 text-[#0A2540] hover:text-blue-700 hover:scale-105 active:scale-95 transition rounded-lg hover:bg-slate-100"
                   >
-                    <X className="w-4 h-4" />
+                    <Search className="w-4 h-4 font-bold" />
                   </button>
-                )}
+                </div>
               </form>
             </div>
 
@@ -1101,35 +1103,37 @@ export default function InteractiveMap({
         {/* 1. 검색창 (초기화 버튼 삭제, 엔터 또는 돋보기 클릭 시 검색 실행, x 누르면 즉시 초기화) */}
         <div className="p-3 border-b border-gray-100 bg-white flex-shrink-0">
           <form onSubmit={handleSearchSubmit} className="relative flex items-center shadow-xs rounded-xl overflow-hidden bg-slate-50 border border-slate-300 focus-within:border-[#0A2540] focus-within:ring-2 focus-within:ring-blue-100 transition">
-            <button
-              type="submit"
-              title="검색 실행"
-              className="p-3 text-[#0A2540] hover:text-blue-700 transition flex-shrink-0"
-            >
-              <Search className="w-4 h-4 font-bold" />
-            </button>
             <input
               type="text"
               value={localSearchInput}
               onFocus={() => setMobileSheetMode('expanded')}
               onChange={(e) => setLocalSearchInput(e.target.value)}
               placeholder="축제명 또는 주소를 입력하세요 (Enter)"
-              className="w-full pr-10 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 bg-transparent focus:outline-none"
+              className="w-full pl-3.5 pr-20 py-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 bg-transparent focus:outline-none"
             />
-            {(localSearchInput || searchQuery) && (
+            <div className="absolute right-2 flex items-center gap-1">
+              {(localSearchInput || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocalSearchInput('');
+                    onResetFilters();
+                    resetMapToInitial();
+                  }}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 transition rounded-full hover:bg-slate-200/60"
+                  title="검색어 지우기 및 필터 초기화"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
               <button
-                type="button"
-                onClick={() => {
-                  setLocalSearchInput('');
-                  onResetFilters();
-                  resetMapToInitial();
-                }}
-                className="absolute right-2.5 text-gray-400 hover:text-gray-600 p-1.5"
-                title="검색어 지우기 및 필터 초기화"
+                type="submit"
+                title="검색 실행"
+                className="p-2 text-[#0A2540] hover:text-blue-700 active:scale-95 transition rounded-lg hover:bg-slate-200/60"
               >
-                <X className="w-4 h-4" />
+                <Search className="w-4 h-4 font-bold" />
               </button>
-            )}
+            </div>
           </form>
         </div>
 
